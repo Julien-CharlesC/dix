@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<title>Jeu du dix</title>
+	<link rel="stylesheet" href="/static/style.css">
+	<link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+  	<script src="/static/scripts.js"></script> 
+
+	<!--
+	<link rel="stylesheet" href="style.css">
+	<link rel="icon" href="favicon.ico" type="image/x-icon">
+  	<script src="scripts.js"></script> 
+	-->
+</head>
+<body>
+    <header id="header" >
+		<div id="header-title">
+			<h1>Jeu du dix</h1>
+			<p>Jeu de carte officiel de l'AÉDIROUM</p>
+		</div>
+		<div id="header-buttons">
+			<div class="home-button"
+			onclick="newHand()"
+			>Nouvelle main</div>
+			<div class="home-button"
+			onclick="newGame()"
+			>Nouvelle table</div>
+			<div class="home-button"
+			onclick="socket.close()"
+			>Quitter</div>
+		</div>
+    </header>
+	<dialog id="createNewRoomDialog" class="dialog">
+		<h2>Entrer votre nom</h2>
+		<form method="dialog" onsubmit="createNewRoom(this.username.value) ">
+			<div class="dialog-inputs">
+				<label for="username">Nom:</label>
+				<input id="username" name="username" required autocomplete="off">
+			</div>
+			<menu>
+				<button class="home-button" type="submit">Créer table</button>
+				<button class="home-button" type="button" onclick="closeDialog('createNewRoomDialog')">Annuler</button>
+			</menu>
+		</form>
+	</dialog>
+
+	<dialog id="joinRoomDialog" class="dialog">
+		<h2>Entrer votre nom et l'ID de table</h2>
+		<form method="dialog" onsubmit="joinRoom(this.elements.username.value, this.elements.roomId.value)">
+			<div class="dialog-inputs">
+				<label for="username">Nom:</label>
+				<input id="username" name="username" required autocomplete="off">
+			
+				<label for="userid">Table ID:</label>
+				<input id="userid" name="roomId" required autocomplete="off">
+			</div>
+		
+			<menu>
+				<button class="home-button">Rejoindre</button>
+				<button class="home-button" type="button" onclick="closeDialog('joinRoomDialog')">Annuler</button>
+			</menu>
+		</form>
+	</dialog>
+
+	<dialog id="errorDialog" class="dialog">
+		<h2>Entrer votre nom et l'ID de table</h2>
+		<menu>
+			<button class="home-button" type="button" onclick="closeDialog('errorDialog')">Fermer</button>
+		</menu>
+	</dialog>
+
+	<main>
+  	<div id="home-container">
+
+
+
+      <div class="description">
+        <p>Le jeu du dix est le jeu de carte officiel de l'AÉDIROUM.</p>
+      </div>
+
+      <div class="connection_options">
+        <div class="connection_option home-button"
+          onclick="openDialog('createNewRoomDialog')"
+        >
+          <h3>Créer une nouvelle table</h3>
+        </div>
+        <div class="connection_option home-button"
+          onclick="openDialog('joinRoomDialog')"
+        >
+          <h3>Rejoindre une table</h3>
+        </div>
+      </div>
+
+	    <div class="regle">
+			<h3 class="home-button"
+				onclick="location.href='https://wiki.aediroum.ca/wiki/Jeu_du_10'" type="button"
+			>
+			
+				Règles du jeu du dix
+			</h3>
+		</div>
+
+  	</div>
+	<div id="game-container">
+		<div id="top-info-container">
+			<div id="id-container">
+				<label for="roomId">Id de table</label>
+				<output id="roomId"></output>
+			</div>
+			<div id="game-infos">
+				<div class="score">
+					<label for="points-home">Nous</label>
+					<output id="points-home">0 pt</output>
+					<div class="bid" id="bid-home"></div>
+				</div>
+
+				<div class="trump">
+					<label>Atout</label>
+					<div id="trump" class="card placeholder"></div>
+				</div>
+
+				<div class="score">
+					<label for="points-away">Vous</label>
+					<output id="points-away">0 pt</output>
+					<div class="bid" id="bid-away"></div>
+				</div>
+			</div>
+			<div><button onclick="dev()">dev</button></div>
+		</div>
+		<div id="play-area" >
+
+			<section class="player current-turn" id="player0">
+				<ol class="card-hand myhand" id="player0-hand">
+					<div  onclick="playcard(this)" class="card face-down"></div>
+					<div  onclick="playcard(this)" class="card face-down"></div>
+					<div  onclick="playcard(this)" class="card face-down"></div>
+					<div  onclick="playcard(this)" class="card face-down"></div>
+					<div  onclick="playcard(this)" class="card face-down"></div>
+					<div  onclick="playcard(this)" class="card face-down"></div>
+					<div  onclick="playcard(this)" class="card face-down"></div>
+					<div  onclick="playcard(this)" class="card face-down"></div>
+					<div  onclick="playcard(this)" class="card face-down"></div>
+					<div  onclick="playcard(this)" class="card face-down"></div>
+				</ol>
+				<h2 id="player0-name">Jérémie</h2>
+			</section>
+
+			<section class="player" id="player1">
+
+				<ol class="card-hand sidePlayer other" id="player1-hand">
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+				</ol>
+				<h2 id="player1-name">Marie</h2>
+			</section>
+
+			<section class="player" id="player2">
+				<h2 id="player2-name">Fred</h2>
+				<ol class="card-hand other" id="player2-hand">
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+				</ol>
+			</section>
+
+			<section class="player" id="player3">
+				<h2 id="player3-name">Coralie</h2>
+				<ol class="card-hand sidePlayer other" id="player3-hand">
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+					<div class="card face-down"></div>
+				</ol>
+			</section>
+
+			<section class="table-center">
+				<ol>
+					<div class="card placeholder" id="table-center-card0"></div>
+					<div class="card placeholder" id="table-center-card1"></div>
+					<div class="card placeholder" id="table-center-card2"></div>
+					<div class="card placeholder" id="table-center-card3"></div>
+				</ol>
+			</section>
+		</div>
+	</div>
+ 	</main>   
+</body>
+</html>
