@@ -1,15 +1,13 @@
-from typing import List, Optional, Tuple, Any
+from typing import List, Optional, Tuple, Any, Union
 from pydantic import BaseModel, Field
 from fastapi import WebSocket
-import sys, os
-
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from Table import Table
+from Models.Table import Table
+from Models.RandoBot import RandoBot
 
 class Player(BaseModel):
     isActive : bool
     isBot : bool
-    ws : Optional[WebSocket]
+    ws : Any #Is either WebSocket or a bot object
     name : str
     seat : int
     model_config = {
@@ -18,9 +16,9 @@ class Player(BaseModel):
 
 class Room(BaseModel):
     roomId :str 
-    table : Table = Field(Table())
+    table : Table = Field(default_factory = Table)
     roomName : str
-    players : List[Optional[Player]] = Field([None]*4)
+    players : List[Optional[Player]] = Field(default_factory=lambda:[None]*4)
     model_config = {
         "arbitrary_types_allowed": True
     }
@@ -40,7 +38,7 @@ class Room(BaseModel):
             Player(
                 isActive = True,
                 isBot = True,
-                ws = None,
+                ws = RandoBot(seat, self.table),
                 name = "RandoBot",
                 seat =seat 
             )

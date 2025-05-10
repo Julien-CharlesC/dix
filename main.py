@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 from GamesManager import GamesManager
 from string import ascii_letters, digits
-alphanum = ascii_letters+digits
+alphanum = ascii_letters+digits + " "
 import re
 
 app = FastAPI()
@@ -31,7 +31,7 @@ async def validateConnectionToken(
     action,value = _validateConnectionToken(token)
     return
 
-def _validateConnectionToken(token):
+def _validateConnectionToken(token:str):
 
     # Check if there is too many connection socket
     if (
@@ -42,11 +42,13 @@ def _validateConnectionToken(token):
         raise HTTPException(status_code=503, detail="Too many players for server capacity.")
 
     # Sanitize and process token
+    token = token.strip()
     if (
         any([(car not in alphanum+":,") for car in token])
         or
-        not ( m:= re.match(r'^(\w+):((?:\w+,?)+)$',token)) 
+        not ( m:= re.match(r'^(\w+):((?:\w+(?: \w+)*)(?:,\s*\w+(?: \w+)*)*)$',token)) 
     ):
+        print(token)
         raise HTTPException( status_code=400, detail="Bad connection token.")
     action, value = m[1], m[2]
 

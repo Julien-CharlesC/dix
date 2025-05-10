@@ -101,7 +101,7 @@ body {
 header {
   width: 100%;
   background-color: #282848;
-  padding: 2em;
+  padding: 0.5rem 2rem;
   text-align: center;
 }
 
@@ -115,7 +115,6 @@ header h1 {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 2rem;
 	gap: 1rem;
 	width: 100%;
 }
@@ -359,6 +358,7 @@ header h1 {
 }
 .table-center > ol > :nth-child(2) {
 	grid-area: 2 / 1;
+	justify-self: right;
 }
 .table-center > ol > :nth-child(3) {
 	grid-area: 1 / 2;
@@ -366,6 +366,40 @@ header h1 {
 }
 .table-center > ol > :nth-child(4) {
 	grid-area: 2 / 3;
+}
+.table-center > ol > :nth-child(5) {
+	grid-area: 3 / 1;
+}
+.table-center > ol > :nth-child(6) {
+	grid-area: 3 / 3;
+}
+.table-center > ol > :nth-child(7) {
+	grid-area: 1 / 1;
+}
+.table-center > ol > :nth-child(8) {
+	grid-area: 1 / 3;
+}
+.bid-button{
+	height: 0;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 0;
+	font-size: 2.5rem  !important;
+	padding: 1.5rem 1.5rem  !important ;
+	justify-self: center; 
+	user-select: none;
+}
+.pass-button{
+	user-select: none;
+	display: none;
+	height: 0;
+	align-items: center;
+	justify-content: center;
+	width: 0;
+	font-size: 1rem  !important;
+	padding : 1rem 1.8rem !important ;
+	justify-self: center; 
 }
 
 .card-hand-wrapper {
@@ -435,9 +469,19 @@ header h1 {
 	height:min-content;
 	width: min-content;
 }
+.glow{
+	color: #ffd700;
+	text-shadow: 0 0 5px #ffd700, 0 0 10px #ffa500, 0 0 15px #ff8c00;
+	font-weight: bold;
+}
 
 #player2 h2 {
 	bottom: 6rem;
+}
+
+.last-trick-container{
+	align-items: left;
+	width: 100%;
 }
 
 #top-info-container{
@@ -447,8 +491,7 @@ header h1 {
 
 #roomId{
   border: 2px solid var(--color-secondary);
-  padding-left: 4px;
-  padding-right: 4px;
+  padding: 0.2rem 0.8rem !important ;
   width: min-content;
 }
 
@@ -458,6 +501,9 @@ header h1 {
   gap: 1rem;
 }
 
+.score label {
+	align-self: center;
+}
 .score output {
   min-width: 6.5ch;
   height: 3rem;

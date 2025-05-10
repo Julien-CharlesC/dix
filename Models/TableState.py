@@ -13,23 +13,23 @@ class TableState(BaseModel):
         None,
     )
     center : List[Optional[List[int]]] = Field(
-        [None]*4, 
+        default_factory = lambda :[None]*4, 
         description ="The card in the center of the table. Indexed by their respective player."
     )
     bids : List[int] = Field(
-        [None]*4,
+        default_factory=lambda:[None]*4,
         description = "The bids of the players, indexed with their seats."
     )
     points : List[int] = Field(
-        [0,0],
+        default_factory=lambda:[0,0],
         description = "The points overall points the two teams over all finished hands."
     )
     hands : List[List[List[int]]] = Field(
-        [[] for _ in range(4)],
+        default_factory=lambda:[[] for _ in range(4)],
         description = "The hands of the players."
     )
     currentPoints : List[int] = Field(
-        [0,0],
+        default_factory=lambda:[0,0],
         description = "The points of the two teams for the current hand."
     )
     state: str = Field(
@@ -37,7 +37,7 @@ class TableState(BaseModel):
         description = "The state of the game: waiting, biding, playing, end."
     )
     lastCenter : List[Optional[List[int]]] = Field(
-        [None]*4, 
+        default_factory=lambda:[None]*4, 
         description ="The last center before the 'lever'."
     )
 

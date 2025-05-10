@@ -2,9 +2,11 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Quer
 from string import ascii_letters, digits
 alphanum = ascii_letters+digits
 from random import choice
-from Table import Table
 import re, json, asyncio
+
 from Models.Room import Room, Player
+from Models.Table import Table
+from Models.RandoBot import RandoBot
 
 class GamesManager():
 
@@ -40,7 +42,7 @@ class GamesManager():
         if ( 
             len(token) >= 20 or 
             any([(car not in alphanum+":,") for car in token]) or
-            not ( m:= re.match(r'(\w+):((?:\w+,?)+)',token))
+            not ( m:= re.match(r'^(\w+):((?:\w+(?: \w+)*)(?:,\s*\w+(?: \w+)*)*)$',token))
         ) : raise HTTPException( status_code=400, detail="Bad game token.")
 
         return m[1], m[2]
@@ -71,7 +73,7 @@ class GamesManager():
         
         await ws.accept()
         self.total_connection += 1
-        room = self.games.get(roomId)
+        room : Room = self.games.get(roomId)
         print(f"{self.total_connection=}")
         player = Player(
             isActive = True,
@@ -83,6 +85,7 @@ class GamesManager():
         room.players[indexSeat] = player
         # TODO action is newPlayer arrived
         await self.playerAct("update","",room,player)
+        print(room)
 
         try :
             while True:
@@ -90,19 +93,23 @@ class GamesManager():
                 await self.playerAct(action,value,room,player)
         except WebSocketDisconnect:
             self.total_connection -= 1
-            room.players[indexSeat].isActive = False
+            player.isActive = False
             print(f"{self.total_connection=}")
             # Del the room if no player in it.
             if not any(player.isActive for player in room.humans):
                 self.games.pop(roomId)
             else :
                 await self.playerAct("update","",room,player)
-        except : 
-            self.total_connection -= 1
-            raise Exception
+        except Exception as e: 
+            for player in room.humans:
+                if player.isActive : 
+                    self.total_connection -= 1
+                    player.ws.close()
+            print(e)
+            self.games.pop(roomId)
 
-    async def updatePlayers(self, room, action, msg=""):
-        state = room.state | { "action" : action, msg:msg} 
+    async def updatePlayers(self, room : Room , action, msg=""):
+        state = room.state | { "action" : action, "msg":msg} 
         for player in room.humans:
             state.update({
                 "cards" : room.table.ts.hands[player.seat],
@@ -111,30 +118,65 @@ class GamesManager():
             await player.ws.send_text({json.dumps(state)})
 
     async def updatePlayer(self, room, action, player, msg=""):
-        state = room.state | {"action" : action, msg:msg} 
+        state = room.state | {"action" : action, "msg":msg} 
         state.update({
             "cards" : room.table.ts.hands[player.seat],
             "mySeat": player.seat, 
         })
         await player.ws.send_text(json.dumps(state))
 
-    async def playerAct(self,action,value,room,player):
+    async def botAct(self,room:Room):
+        table = room.table
+        repetition = 0
+        while table.ts.state == "biding" and room.players[table.ts.turn].isBot :
+            botPlayer = room.players[table.ts.turn]
+            bot : RandoBot = botPlayer.ws
+            bid = bot.bid()
+            print(f"{botPlayer.name} will bid:", bid)
+
+            isValid, msg = table.isBidValid(botPlayer.seat, bid)
+            if not isValid: 
+                print("Invalid play by bot, freezing the game.",msg)
+                break
+            table.bid(botPlayer.seat, bid)
+            await asyncio.sleep(1)
+            await self.updatePlayers(room, "bid")
+            repetition += 1
+            if repetition > 10 : raise Exception("Infinite Loop")
+
+        #Bot playing
+        repetition = 0
+        while table.ts.state == "playing" and room.players[table.ts.turn].isBot :
+            botPlayer = room.players[table.ts.turn]
+            bot : RandoBot = botPlayer.ws
+            suite, rank = bot.selectCard()
+            print(f"{botPlayer.name} will play:", suite, rank)
+            isValid, msg = table.isValidPlayCard(botPlayer.seat, [suite,rank]) 
+            if not isValid : 
+                print("Invalid play by bot, freezing the game.",msg)
+                break
+            table.playCard(botPlayer.seat, [suite,rank])
+            await asyncio.sleep(1)
+            await self.updatePlayers(room, "cardPlayed")
+            repetition += 1
+            if repetition > 10 : raise Exception("Infinite Loop")
+
+    async def playerAct(self,action:str,value:str,room:Room,player:Player):
         print(action,value)
         state : dict = room.state
-        table = room.table
+        table : Table = room.table
         match action:
             case "bid":
-                pass
-                """
-                bid = "&empty;" if value == "0" else value
-                msg = {
-                    "isValid":True,
-                    "action" : "bid",
-                    "seat": indexSeat, 
-                    "bid": value,
-                }
-                await self.sendMsg2Room(msg,room)
-                """
+                if not re.match(r'^(?:\d{1,3})$', value) :
+                    self.updatePlayer(room, "invalid", player, msg="Bad bid token.")
+                    player.ws.close ; return
+                bid = int(value)
+                isValid, msg = table.isBidValid(player.seat,bid)
+                if isValid :
+                    table.bid(player.seat, bid)
+                    await self.updatePlayers(room, "bid")
+                else :
+                    await self.updatePlayer(room, "invalid", player, msg=msg)
                 
             case "update":
                 await self.updatePlayers(room, "update")
@@ -152,7 +194,7 @@ class GamesManager():
 
             case "playCard":
                 if ( not re.match(r'^[0-3],(?:5|6|7|8|9|1[0-4])$',value)):
-                    player.ws.send_text(json.dumps({"isValid":False , "validationMsg" : "Bad game token"}))
+                    self.updatePlayer(room, "invalid", player, msg="Bad card token.")
                     player.ws.close ; return
                 suite,rank = map(int,value.split(","))
                 isValid, validationMsg = table.isValidPlayCard(player.seat,[suite,rank])
@@ -160,20 +202,12 @@ class GamesManager():
                     table.playCard(player.seat,[suite,rank])
                     await self.updatePlayers(room, "cardPlayed")
 
-                    #Bot playing
-                    while room.players[table.ts.turn].isBot and table.ts.state == "playing" :
-                        player = table.ts.turn
-                        suite,rank = table.randomCard(player)
-                        print(f"Bot{table.ts.turn} will play:", suite, rank)
-                        if not table.isValidPlayCard(player, [suite,rank]): break
-                        table.playCard(player, [suite,rank])
-                        await asyncio.sleep(1)
-                        await self.updatePlayers(room, "cardPlayed")
-
                 else :  #Is not a valid playCard action
                     await self.updatePlayer(room, "invalid", player, msg=validationMsg)
             case _:
                 player.ws.send_text(json.dumps({isValid:False , "validationMsg" : "Bad game token"}))
                 player.ws.close ; return
+
+        await self.botAct(room)
 
                 

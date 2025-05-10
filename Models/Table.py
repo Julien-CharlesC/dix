@@ -1,4 +1,4 @@
-from random import shuffle, choice
+from random import shuffle
 from Models.TableState import TableState
 from copy import deepcopy
 
@@ -18,7 +18,15 @@ class Table():
 
     def endHand(self):
         self.ts.dealer = (self.ts.dealer+1)%4
-        self.ts.points = [ a+b for a,b in zip(self.ts.points, self.ts.currentPoints)]
+        bids = self.ts.bids
+        bestBid = max(bids)
+        bidWinner = bids.index(bestBid)%2
+        if self.ts.currentPoints[bidWinner] >= bestBid :
+            self.ts.points[bidWinner] += self.ts.currentPoints[bidWinner]
+        else :
+            self.ts.points[bidWinner] -= bestBid 
+        otherTeam = (bidWinner+1)%2
+        self.ts.points[otherTeam] += self.ts.currentPoints[otherTeam]
         self.ts.state = "end"
 
     def askedSuite(self):
@@ -36,8 +44,7 @@ class Table():
 
         # Refresh the table state
         self.newGame()
-        #TODO fix for biding
-        self.ts.state = "playing"
+        self.ts.state = "biding"
         self.ts.points = points
         self.ts.dealer = self.ts.turn =  dealer
         deck = [
@@ -46,6 +53,7 @@ class Table():
         shuffle(deck)
         for i in range(4):
             self.ts.hands[i] = sorted(deck[i*10:(i+1)*10])[::-1]
+
 
     
     def playerHasCard(self, player, card):
@@ -103,7 +111,6 @@ class Table():
             if card[1] == 5 : points += 5
             if card[1] in [10,14]: points += 10 
 
-        print(f"{winningPlayer=}")
         if winningPlayer in [0,2]: 
             self.ts.currentPoints[0] += points
         else:
@@ -115,20 +122,8 @@ class Table():
     def isHandFinish(self):
         return all(len(hand) == 0 for hand in self.ts.hands)
 
-    def randomCard(self, player):
-        if self.ts.hands[player] == 0 :
-            print("Should not happen.")
-            return None
-        if self.count_played_cards() == 0 :
-            return choice(self.ts.hands[player])
-        else :
-            askedSuite = self.askedSuite()
-            askedSuiteCards = self.getPlayerSuite(player,askedSuite)
-            if len(askedSuiteCards) == 0 :
-                return choice(self.ts.hands[player])
-            else:
-                return choice(askedSuiteCards)
 
+    # Suposes that it is valid
     def playCard(self, player, card):
         if self.ts.trump is None:
             self.ts.trump = card[0]
@@ -139,3 +134,67 @@ class Table():
             self.lever()
         if self.isHandFinish() :
             self.endHand()
+
+    # If the first 3 players passed, then the last player must bid.
+    def isForcedToBid(self):
+        bids = self.ts.bids
+        return all(
+            bids[(self.ts.turn-i)%4] == 0
+            for i in range(1,4)
+        ) and self.ts.bids[self.ts.turn] == None
+
+    def isBidValid(self, seat, bid):
+        if self.ts.turn != seat:
+            return False, "Pas ton tour de miser."
+        if self.ts.state != "biding":
+            return False, "Pas le moment de miser."
+        if bid == 0 :
+            return True, "Good."
+        if (bid > 100 or bid < 50) :
+            return False, "La mise doit être entre 50 et 100."
+        if bid%5 != 0 :
+            return False, "La mise doit être un multiple de 5."
+
+        bids = [ bid for bid in self.ts.bids if bid is not None ]
+
+        # No bid before.
+        if len(bids) == 0 :
+            return True, "Good."
+
+        best_bid = max(
+            bid for bid in bids
+        )
+        if bid > best_bid :
+            return True, "Good."
+        else :
+            return False, "Doit surenchérir."
+
+    # Supposes that the bid is valid
+    def bid(self, seat, bid):
+        bids = self.ts.bids
+        bids[seat] = bid 
+        if bid == 100:
+            self.ts.bids = [0]*4
+            self.ts.bids[seat] = 100
+            self.ts.turn = seat
+            self.ts.state = "playing"
+            return
+
+        # This increment the turn to the next seat whose's turn is to bid. 
+        i = 0
+        print(self.ts.turn, bids)
+        self.ts.turn = (self.ts.turn+1)%4
+        while self.ts.bids[self.ts.turn] == 0 :
+            self.ts.turn = (self.ts.turn+1)%4
+            i += 1
+            if i > 10 : raise Exception("Infinite Loop")
+        print(self.ts.turn)
+
+        # No bids, forced to bid 50.
+        if self.isForcedToBid():
+            bids[self.ts.turn] = 50
+            self.ts.state = "playing"
+            return
+        # All other players have passed, player win the bids.
+        if sum(bid == 0 for bid in bids) == 3 :
+            self.ts.state = "playing"

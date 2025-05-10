@@ -1,11 +1,13 @@
 let mySeat
 let clearTableTimeout = null
+let next_bid = 50
+let turn
+let data = null
+/*
 let cardPlayedSound = new Audio("/audio/cardPlayed.mp3")
+*/
 let shuffleSound = new Audio("/audio/shuffle.mp3")
 
-function dev(){
-  socket.send("bid:0")
-}
 function createNewRoom(name){
     token = "newRoom:"+name
     connect(token)
@@ -62,9 +64,11 @@ function connect(token){
     }
 
     socket.onmessage = (event) => {
-        data = event.data
-        console.log("Message from server:", event.data);
-        processServer(JSON.parse(data))
+        data = JSON.parse(event.data)
+        console.log("Message from server:", data);
+        mySeat = data.mySeat
+        turn = data.turn
+        processServer(data)
     }
     socket.onerror = (event) =>{
         console.log(event)
@@ -124,7 +128,39 @@ function deleteCardFromHand(suite,rank, id){
   }
 }
 */
+function updateBid(data){
+  if (data.state != "biding"){
+    document.querySelectorAll('.bid-button, .pass-button').forEach(elem=>{
+      elem.style.display = "none"
+    })
+  } else {
+    document.querySelectorAll('.bid-button, .pass-button').forEach(elem=>{
+      elem.style.display = "inline-flex"
+    })
+  }
+  next_bid = Math.max(...data.bids, 45)+5
+  console.log(next_bid)
+  console.log(data.bids)
+  myCard = document.getElementById("table-center-card0")
+  data.bids.forEach((bid,seat)=>{
 
+    id = "table-center-card"+seat2Id(seat)
+    tablecard = document.getElementById(id)
+    className = `card placeholder`
+
+    bid = data.bids[seat]
+    if (bid==0) bid = "&empty;"
+    tablecard.className = className
+    tablecard.innerHTML = bid
+
+    if (data.turn == mySeat){
+      if (data.state == "biding") myCard.innerHTML = next_bid
+      myCard.classList.add("glow")
+    } else {
+      myCard.classList.remove("glow")
+    }
+  })
+}
 
 function processServer(data){
   action = data.action
@@ -134,9 +170,19 @@ function processServer(data){
       console.log(data.msg)
       break
 
+    case "bid":
+      updateBid(data)
+      showTurn(data)
+      if (data.bids.filter(x => x === 0).length === 3 ){
+        clearTableTimeout = setTimeout(() => {
+          updateTableCenter(data.center, data)
+          clearTableTimeout = null
+        }, 4000);
+      }
+      break
+
     case "cardPlayed":
       updatePage(data)
-      cardPlayedSound.play()
 
       if (clearTableTimeout !== null){
         clearTimeout(clearTableTimeout)
@@ -144,24 +190,15 @@ function processServer(data){
       }
       // Set a timer of 4 seconds before clearing the center
       // To let the players the time to look at what has just been played.
-      if (data.center.every(x=>x===null)){
-        updateTableCenter(data.lastCenter)
+      if (data.center.every(x=>x===null) && data.state != "biding"){
+        updateTableCenter(data.lastCenter, data)
         clearTableTimeout = setTimeout(() => {
-          updateTableCenter(data.center)
+          updateTableCenter(data.center, data)
           clearTableTimeout = null
         }, 4000);
-      }else{ updateTableCenter(data.center) }
+      }else{ updateTableCenter(data.center, data) }
 
       break
-
-    /*
-    case "bid":
-      if (!data.isValid){return}
-      playerId = seat2Id(data.seat)
-      card = document.getElementById("table-center-card"+playerId)
-      card.innerHTML = data.bid
-      break
-    */
 
     case "update":
       updatePage(data)
@@ -177,12 +214,23 @@ function updateRoomId(data){
   document.getElementById("roomId").innerHTML = data.roomId
 }
 
-function updateTableCenter(center){
+function updateTableCenter(center,data){
   center.forEach((card, seat)=>{
+    if (data.state == "biding"){
+      bid = data.bids[seat]
+      if (bid==0) bid = "&empty;"
+      id = "table-center-card"+seat2Id(seat)
+      tablecard = document.getElementById(id)
+      tablecard.innerHTML = bid
+      className = `card placeholder`
+      tablecard.className = className
+      return
+    }
     if (!card){
       className = `card placeholder`
       id = "table-center-card"+seat2Id(seat)
       tablecard = document.getElementById(id)
+      tablecard.innerHTML = ""
       tablecard.className = className
     }
     else{
@@ -191,6 +239,7 @@ function updateTableCenter(center){
       className = `card ${suite} ${rank}`
       id = "table-center-card"+seat2Id(seat)
       tablecard = document.getElementById(id)
+      tablecard.innerHTML = ""
       tablecard.className = className
     }
   })
@@ -258,16 +307,27 @@ function renderMyHand(data){
     });
   }
 }
+function showTurn(data){
+  for(let id = 0; id<4 ; id++){
+    nameDiv = document.getElementById("player"+id+"-name")
+    if (id == seat2Id(data.turn)){
+      nameDiv.classList.add("glow")
+    }else{
+      nameDiv.classList.remove("glow")
+    }
+  }
+}
 
 function updatePage(data){
-  mySeat = data.mySeat
+  updateTableCenter(data.center, data)
   updateRoomId(data)
-  updateTableCenter(data.center)
   showTrump(data)
   updatePoints(data)
   updateNames(data)
   renderMyHand(data)
   renderOtherPlayerHands(data)
+  showTurn(data)
+  updateBid(data)
 }
 
 function newGame(){
@@ -297,3 +357,113 @@ function playcard(cardEl){
   console.log("Sending:",msg)
   socket.send(msg)
 }
+
+function lowerBid(){
+  if (turn != mySeat) return
+  card = document.getElementById("table-center-card0")
+  if (!parseInt(card.innerHTML)){
+    card.innerHTML = next_bid
+  } else {  
+    newValue = Math.max(next_bid, parseInt(card.innerHTML) - 5)
+    card.innerHTML = newValue
+  }
+}
+function augmentBid(){
+  if (turn != mySeat) return
+  card = document.getElementById("table-center-card0")
+  if (!parseInt(card.innerHTML)){
+    card.innerHTML = next_bid
+  } else {  
+    newValue = Math.min(100,parseInt(card.innerHTML) + 5)
+    card.innerHTML = newValue
+  }
+}
+
+function passBid(){
+  if (turn != mySeat) return
+  socket.send("bid:0")
+}
+
+function confirmBid(){
+  if (turn != mySeat) return
+  card = document.getElementById("table-center-card0")
+  bid = parseInt(card.innerHTML)
+  if (!bid) bid = next_bid
+  socket.send("bid:"+bid)
+}
+
+function copyToClipboard(elem) {
+  text = elem._originalText
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).catch(err => console.error("Clipboard write failed:", err));
+  } else {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+      document.execCommand("copy");
+    } catch (err) {
+      console.error("Fallback copy failed", err);
+    }
+    document.body.removeChild(textarea);
+  }
+}
+function showCopy(elem) {
+  if (!elem._originalText) {
+    elem._originalText = elem.textContent;
+    lockWidth(elem);
+  }
+  elem.textContent = "Copier";
+}
+
+function restoreText(elem) {
+  if (elem._originalText !== undefined) {
+    elem.textContent = elem._originalText;
+  }
+}
+// Ensure that the button does't change in size when inner text become "Copier"
+function lockWidth(elem) {
+  const width = elem.offsetWidth + "px";
+  elem.style.width = width;
+}
+
+let trickLocked = false;
+
+function showLastTrick() {
+  if (!trickLocked && data) {
+    // Show the trick only if not locked
+    updateTableCenter(data.lastCenter, data)
+    console.log("here")
+  }
+}
+
+function hideLastTrick() {
+  if (!trickLocked && data) {
+    // Hide only if not locked
+    updateTableCenter(data.center, data)
+  }
+}
+
+function toggleTrickLock(event) {
+  trickLocked = !trickLocked;
+
+  if (trickLocked) {
+    showLastTrick();
+    // Optional: prevent the click from bubbling to window
+    event.stopPropagation();
+  } else {
+    hideLastTrick();
+  }
+}
+
+// To detect click elsewhere and unlock
+window.addEventListener("click", function () {
+  if (trickLocked) {
+    trickLocked = false;
+    hideLastTrick();
+  }
+});

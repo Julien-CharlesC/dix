@@ -107,7 +107,14 @@
 		<div id="top-info-container">
 			<div id="id-container">
 				<label for="roomId">Id de table</label>
-				<output id="roomId"></output>
+				<output 
+					id="roomId" 
+					class="home-button" 
+					onclick="copyToClipboard(this)"
+					onmouseenter="showCopy(this)" 
+					onmouseleave="restoreText(this)"
+				>
+				</output>
 			</div>
 			<div id="game-infos">
 				<div class="score">
@@ -127,7 +134,14 @@
 					<div class="bid" id="bid-away"></div>
 				</div>
 			</div>
-			<div><button onclick="dev()">dev</button></div>
+			<div class="last-trick-container">
+				<div  
+				onmouseenter="showLastTrick()" 
+				onmouseleave="hideLastTrick()"
+				onclick="toggleTrickLock(event)"
+				class="card face-down">
+				</div>
+			</div>
 		</div>
 		<div id="play-area" >
 
@@ -202,6 +216,10 @@
 					<div class="card placeholder" id="table-center-card1"></div>
 					<div class="card placeholder" id="table-center-card2"></div>
 					<div class="card placeholder" id="table-center-card3"></div>
+					<div class="bid-button home-button" onclick="lowerBid()">-</div>
+					<div class="bid-button home-button" onclick="augmentBid()">+</div>
+					<div class="pass-button home-button" onclick="passBid()">Passer</div>
+					<div class="pass-button home-button" onclick="confirmBid()">Miser</div>
 				</ol>
 			</section>
 		</div>
