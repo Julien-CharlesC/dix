@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 from GamesManager import GamesManager
 from string import ascii_letters, digits
-alphanum = ascii_letters+digits + " "
+alphanum = ascii_letters+digits + "- " + "ùûüÿàâçéèêëïîô"
 import re
 
 app = FastAPI()

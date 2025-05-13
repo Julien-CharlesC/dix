@@ -74,7 +74,7 @@ body {
   text-align: center;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
   transition: transform 0.3s ease;
-	cursor: pointer;
+  cursor: pointer;
 }
 
 .home-button:hover {
@@ -311,10 +311,12 @@ header h1 {
   }
 
 #play-area {
+	padding-top:2rem ;
 	justify-self: center;
+	justify-content: center;
 	display: grid;
-	grid-template-columns: repeat(3, minmax(200px, 1fr));
-	grid-template-rows: auto minmax(200px, 1fr) minmax(200px, 1fr);
+	grid-template-columns: repeat(3, 18rem) ;
+	grid-template-rows: auto repeat(2, 18rem);
 	width: clamp(200px, 100%, 750px);
 	gap: 2rem;
 }
@@ -342,10 +344,6 @@ header h1 {
 	gap: 0.5rem;
 	position: relative;
 	align-self: stretch;
-}
-
-.player h2 {
-	position: absolute;
 }
 
 .sidePlayer {
@@ -460,7 +458,6 @@ header h1 {
 }
 
 #player2 {
-	padding-top: 3em;
 	grid-row: 1 / 2;
 	grid-column: 2 / 3;
 	justify-content: flex-end;
@@ -482,6 +479,13 @@ header h1 {
 .last-trick-container{
 	align-items: left;
 	width: 100%;
+	display : flex ;
+	align-items: center;
+	flex-direction: column;
+	gap: 0.25rem ;
+}
+.last-trick-container div{
+	cursor: pointer;
 }
 
 #top-info-container{
@@ -516,14 +520,22 @@ header h1 {
   text-align: center;
 }
 #id-container{
-	padding-left: 1em;
+	display:flex;
+	flex-direction: column;
+	align-items: center;
+	gap : 0.25rem ;
 }
+
 
 .trump, .score, #id-container {
   display: flex;
   justify-content: center;
+  align-items: center;
   flex-direction: column;
   gap: .25rem;
+}
+.trump label{
+	text-align: center;
 }
 
 @media screen and (max-width: 750px) {
@@ -573,13 +585,17 @@ header h1 {
 
 
 	#play-area {
+		padding-top:2rem ;
 		justify-content: center;
-		grid-template-columns: repeat(3, 100px);
-		grid-template-rows: auto repeat(2, 1fr);
+		grid-template-columns: repeat(3, 18rem) ;
+		grid-template-rows: auto repeat(2, 18rem);
+		justify-content: center;
 	}
 
 	.table-center {
 		align-items: normal;
+		background: radial-gradient(circle, #282848 60%, #1e1e2f 70%);
+  		border-radius: 50rem; 
 	}
 
 

@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Query
 from string import ascii_letters, digits
-alphanum = ascii_letters+digits
+from string import ascii_uppercase as UPPER 
+alphanum = ascii_letters+digits + "- " + "ùûüÿàâçéèêëïîô"
 from random import choice
 import re, json, asyncio
+import traceback
 
 from Models.Room import Room, Player
 from Models.Table import Table
@@ -18,9 +20,9 @@ class GamesManager():
 
     def generateRoomId(self):    
         
-        roomId = "".join([ choice(alphanum) for _ in range(self.lengthOfRoomId) ])
+        roomId = "".join([ choice(UPPER) for _ in range(self.lengthOfRoomId) ])
         while self.doesRoomIdExist(roomId):
-            roomId = "".join([ choice(alphanum) for _ in range(self.lengthOfRoomId) ])
+            roomId = "".join([ choice(UPPER) for _ in range(self.lengthOfRoomId) ])
         return roomId
 
     def doesRoomIdExist(self,roomId):
@@ -101,6 +103,7 @@ class GamesManager():
             else :
                 await self.playerAct("update","",room,player)
         except Exception as e: 
+            print(traceback.format_exc())
             for player in room.humans:
                 if player.isActive : 
                     self.total_connection -= 1
@@ -157,7 +160,7 @@ class GamesManager():
                 break
             table.playCard(botPlayer.seat, [suite,rank])
             await asyncio.sleep(1)
-            await self.updatePlayers(room, "cardPlayed")
+            await self.updatePlayers(room, "cardPlayed", msg=f"{botPlayer.seat},{suite},{rank}")
             repetition += 1
             if repetition > 10 : raise Exception("Infinite Loop")
 
@@ -200,7 +203,7 @@ class GamesManager():
                 isValid, validationMsg = table.isValidPlayCard(player.seat,[suite,rank])
                 if isValid : 
                     table.playCard(player.seat,[suite,rank])
-                    await self.updatePlayers(room, "cardPlayed")
+                    await self.updatePlayers(room, "cardPlayed", msg=f"{player.seat},{suite},{rank}")
 
                 else :  #Is not a valid playCard action
                     await self.updatePlayer(room, "invalid", player, msg=validationMsg)

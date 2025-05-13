@@ -3,6 +3,11 @@ let clearTableTimeout = null
 let next_bid = 50
 let turn
 let data = null
+let trickLocked = false;
+let inGame = false
+let mouseOnLastTrick = false ;
+const cardRank = ["five", "six", "seven", "eight", "nine", "ten", "jack", "queen", "king", "ace"];
+const cardSuite = ["spades","hearts","clubs","diamonds"]
 /*
 let cardPlayedSound = new Audio("/audio/cardPlayed.mp3")
 */
@@ -35,6 +40,21 @@ function joinRoom(name,roomId){
   closeDialog('createNewRoomDialog')
 }
 
+function toggleMainMenu(){
+  if (inGame){
+    document.getElementById("home-container").style.display = "block"
+    document.getElementById("game-container").style.display = "None"
+    document.getElementById("header-buttons").style.display = "none"
+    document.getElementById("header").classList.remove("game-header")
+  }else{
+    document.getElementById("game-container").style.display = "flex"
+    document.getElementById("header-buttons").style.display = "flex"
+    document.getElementById("home-container").style.display = "none"
+    document.getElementById("header").classList.add("game-header")
+  }
+  inGame = !inGame
+}
+
 function connect(token){
 
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
@@ -57,17 +77,13 @@ function connect(token){
 
     socket.onopen = () => { 
       console.log("Connected to:", wsUrl); 
-      document.getElementById("game-container").style.display = "flex"
-      document.getElementById("header-buttons").style.display = "flex"
-      document.getElementById("home-container").style.display = "none"
-      header = document.getElementById("header").classList.add("game-header")
+      toggleMainMenu()
     }
 
     socket.onmessage = (event) => {
         data = JSON.parse(event.data)
+        updateScriptState(data)
         console.log("Message from server:", data);
-        mySeat = data.mySeat
-        turn = data.turn
         processServer(data)
     }
     socket.onerror = (event) =>{
@@ -75,16 +91,17 @@ function connect(token){
     }
     socket.onclose = (event) => {
         console.log("Socket closed.")
-        document.getElementById("home-container").style.display = "block"
-        document.getElementById("game-container").style.display = "None"
-        document.getElementById("header-buttons").style.display = "none"
-        header = document.getElementById("header").classList.remove("game-header")
+        toggleMainMenu()
     }
   }})
   .catch((error)=>{
     openDialog('errorDialog',"Erreur de connection au serveur.")
   }
   )
+}
+function updateScriptState(data){
+  mySeat = data.mySeat
+  turn = data.turn
 }
 /*
 function refreshCenter(){
@@ -162,8 +179,54 @@ function updateBid(data){
   })
 }
 
+function findMyCard(strSuite,strRank){
+  myHand = document.getElementById("player0-hand")
+  myCard = Array.from(myHand.children).find((child)=>{
+    return (child.classList.contains(strSuite) && 
+            child.classList.contains(strRank))
+  })
+  return myCard
+}
+
+function playCard(data){
+  playerSeat = parseInt(data.msg.split(",")[0])
+  suite = parseInt(data.msg.split(",")[1])
+  rank = parseInt(data.msg.split(",")[2])
+  suite = cardSuite[suite]
+  rank = cardRank[rank-5]
+  if (playerSeat == mySeat){
+    myCard = findMyCard(suite,rank)
+    target = document.getElementById("table-center-card0")
+    moveCard(myCard,target)
+  }else{
+    id = seat2Id(playerSeat)
+    playerCards = document.getElementById("player"+id+"-hand").children;
+    randomCard = playerCards[Math.floor(Math.random() * playerCards.length)];
+    randomCard.className = `card ${suite} ${rank}`
+    target = document.getElementById("table-center-card"+id)
+    moveCard(randomCard, target)
+  }
+
+  if (clearTableTimeout !== null){
+    updateTableCenter([null,null,null,null], data)
+    clearTimeout(clearTableTimeout)
+    clearTableTimeout = null
+  }
+
+  // Clean the table early if playedCard before the end of the timer.
+  // Set a timer of 4 seconds before clearing the center
+  // To let the players the time to look at what has just been played.
+  if (data.center.every(x=>x===null) && data.state != "biding" ){
+    clearTableTimeout = setTimeout(() => {
+      updateTableCenter(data.center, data)
+      clearTableTimeout = null
+    }, 4000);
+  }
+}
+
 function processServer(data){
   action = data.action
+  showTurn(data)
   switch (action){
 
     case "invalid":
@@ -172,7 +235,6 @@ function processServer(data){
 
     case "bid":
       updateBid(data)
-      showTurn(data)
       if (data.bids.filter(x => x === 0).length === 3 ){
         clearTableTimeout = setTimeout(() => {
           updateTableCenter(data.center, data)
@@ -182,28 +244,15 @@ function processServer(data){
       break
 
     case "cardPlayed":
-      updatePage(data)
-
-      if (clearTableTimeout !== null){
-        clearTimeout(clearTableTimeout)
-        clearTableTimeout = null
-      }
-      // Set a timer of 4 seconds before clearing the center
-      // To let the players the time to look at what has just been played.
-      if (data.center.every(x=>x===null) && data.state != "biding"){
-        updateTableCenter(data.lastCenter, data)
-        clearTableTimeout = setTimeout(() => {
-          updateTableCenter(data.center, data)
-          clearTableTimeout = null
-        }, 4000);
-      }else{ updateTableCenter(data.center, data) }
+      showTrump(data)
+      updatePoints(data)
+      playCard(data)
 
       break
 
     case "update":
       updatePage(data)
       break
-
   }
 }
 function seat2Id(playerSeat){
@@ -215,6 +264,7 @@ function updateRoomId(data){
 }
 
 function updateTableCenter(center,data){
+  if (trickLocked) return
   center.forEach((card, seat)=>{
     if (data.state == "biding"){
       bid = data.bids[seat]
@@ -291,6 +341,37 @@ function renderOtherPlayerHands(data){
     playerHand.innerHTML=('<div class="card face-down"></div>'.repeat(number))
   })
 }
+function moveCard(card, target) {
+
+  if (!card || !target) return;
+
+  const cardRect = card.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+
+  // Set up absolute positioning
+  card.style.position = "absolute";
+  card.style.zIndex = 1000;
+  card.style.left = cardRect.left + "px";
+  card.style.top = cardRect.top + "px";
+
+  // Move to body to avoid layout conflicts
+  document.body.appendChild(card);
+
+  // Force layout reflow
+  card.offsetWidth;
+
+  // Start transition
+  card.style.transition = "all 0.8s ease";
+  card.style.left = targetRect.left + "px";
+  card.style.top = targetRect.top + "px";
+
+  // Remove card from DOM after transition
+  card.addEventListener("transitionend", () => {
+    target.className = card.className
+    card.remove();
+  }, { once: true });
+}
+
 function renderMyHand(data){
   if (["waiting"].includes(data.state)){
     playerId = "player0-hand"
@@ -302,7 +383,7 @@ function renderMyHand(data){
     data.cards.forEach((card) => {
       suite = cardSuite[card[0]]
       rank = cardRank[card[1] - 5]
-      card = `<div onclick="playcard(this)" class="card ${suite} ${rank}"></div>`
+      card = `<div onclick="askToPlayCard(this)" class="card ${suite} ${rank}"></div>`
       player0Hand.innerHTML += card
     });
   }
@@ -319,7 +400,11 @@ function showTurn(data){
 }
 
 function updatePage(data){
-  updateTableCenter(data.center, data)
+  if (data.action == "bid" || data.state == "biding"){
+    updateBid(data)
+  } else {
+    updateTableCenter(data.center, data)
+  }
   updateRoomId(data)
   showTrump(data)
   updatePoints(data)
@@ -327,7 +412,6 @@ function updatePage(data){
   renderMyHand(data)
   renderOtherPlayerHands(data)
   showTurn(data)
-  updateBid(data)
 }
 
 function newGame(){
@@ -338,12 +422,10 @@ function newHand(){
   socket.send("newHand:none")
 }
 
-const cardRank = ["five", "six", "seven", "eight", "nine", "ten", "jack", "queen", "king", "ace"];
-const cardSuite = ["spades","hearts","clubs","diamonds"]
 
 
 // The function on each player0 cards. 
-function playcard(cardEl){
+function askToPlayCard(cardEl){
   let card = [null,null]
   cardEl.classList.forEach(className => {
 
@@ -431,19 +513,33 @@ function lockWidth(elem) {
   elem.style.width = width;
 }
 
-let trickLocked = false;
-
 function showLastTrick() {
-  if (!trickLocked && data) {
+  mouseOnLastTrick = true 
+  if (!trickLocked && data && ["playing", "end"].includes(data.state)) {
     // Show the trick only if not locked
     updateTableCenter(data.lastCenter, data)
-    console.log("here")
+    Array.from(document.getElementById("play-area").children).forEach((child)=>{
+      if (child.className == "table-center"){
+        return
+      }else{
+        child.style.filter = "blur(5px)"
+      }
+    })
   }
 }
 
+  
 function hideLastTrick() {
-  if (!trickLocked && data) {
+  mouseOnLastTrick = false
+  if (!trickLocked && data && ["playing", "end"].includes(data.state)) {
     // Hide only if not locked
+    Array.from(document.getElementById("play-area").children).forEach((child)=>{
+      if (child.className == "table-center"){
+        return
+      }else{
+        child.style.filter = "blur(0px)"
+      }
+    })
     updateTableCenter(data.center, data)
   }
 }

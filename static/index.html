@@ -32,6 +32,16 @@
 			>Quitter</div>
 		</div>
     </header>
+	<dialog id="lastTrick" class="dialog">
+		<section class="table-center">
+			<ol>
+				<div class="card placeholder" id="trickCard0"></div>
+				<div class="card placeholder" id="trickCard1"></div>
+				<div class="card placeholder" id="trickCard2"></div>
+				<div class="card placeholder" id="trickCard3"></div>
+			</ol>
+		</section>
+	</dialog>
 	<dialog id="createNewRoomDialog" class="dialog">
 		<h2>Entrer votre nom</h2>
 		<form method="dialog" onsubmit="createNewRoom(this.username.value) ">
@@ -135,6 +145,7 @@
 				</div>
 			</div>
 			<div class="last-trick-container">
+				<label>Dernière lever</label>
 				<div  
 				onmouseenter="showLastTrick()" 
 				onmouseleave="hideLastTrick()"
@@ -147,16 +158,16 @@
 
 			<section class="player current-turn" id="player0">
 				<ol class="card-hand myhand" id="player0-hand">
-					<div  onclick="playcard(this)" class="card face-down"></div>
-					<div  onclick="playcard(this)" class="card face-down"></div>
-					<div  onclick="playcard(this)" class="card face-down"></div>
-					<div  onclick="playcard(this)" class="card face-down"></div>
-					<div  onclick="playcard(this)" class="card face-down"></div>
-					<div  onclick="playcard(this)" class="card face-down"></div>
-					<div  onclick="playcard(this)" class="card face-down"></div>
-					<div  onclick="playcard(this)" class="card face-down"></div>
-					<div  onclick="playcard(this)" class="card face-down"></div>
-					<div  onclick="playcard(this)" class="card face-down"></div>
+					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
+					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
+					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
+					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
+					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
+					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
+					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
+					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
+					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
+					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
 				</ol>
 				<h2 id="player0-name">Jérémie</h2>
 			</section>

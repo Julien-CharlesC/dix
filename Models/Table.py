@@ -44,7 +44,7 @@ class Table():
 
         # Refresh the table state
         self.newGame()
-        self.ts.state = "biding"
+        self.ts.state = "playing"
         self.ts.points = points
         self.ts.dealer = self.ts.turn =  dealer
         deck = [
