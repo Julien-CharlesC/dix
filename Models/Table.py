@@ -44,7 +44,7 @@ class Table():
 
         # Refresh the table state
         self.newGame()
-        self.ts.state = "playing"
+        self.ts.state = "biding"
         self.ts.points = points
         self.ts.dealer = self.ts.turn =  dealer
         deck = [
@@ -53,7 +53,6 @@ class Table():
         shuffle(deck)
         for i in range(4):
             self.ts.hands[i] = sorted(deck[i*10:(i+1)*10])[::-1]
-
 
     
     def playerHasCard(self, player, card):

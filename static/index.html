@@ -43,11 +43,13 @@
 		</section>
 	</dialog>
 	<dialog id="createNewRoomDialog" class="dialog">
-		<h2>Entrer votre nom</h2>
-		<form method="dialog" onsubmit="createNewRoom(this.username.value) ">
+		<h2>Créer votre table</h2>
+		<form method="dialog" onsubmit="createNewRoom(this.username.value, this.private.checked) ">
 			<div class="dialog-inputs">
-				<label for="username">Nom:</label>
+				<label for="username">Nom de joueur:</label>
 				<input id="username" name="username" required autocomplete="off">
+				<label for="private">Table privée:</label>
+				<input id="private" name="private" type="checkbox">
 			</div>
 			<menu>
 				<button class="home-button" type="submit">Créer table</button>
@@ -57,16 +59,34 @@
 	</dialog>
 
 	<dialog id="joinRoomDialog" class="dialog">
-		<h2>Entrer votre nom et l'ID de table</h2>
+		<h2>Choisir une table</h2>
 		<form method="dialog" onsubmit="joinRoom(this.elements.username.value, this.elements.roomId.value)">
 			<div class="dialog-inputs">
-				<label for="username">Nom:</label>
+				<label for="username">Nom de joueur:</label>
 				<input id="username" name="username" required autocomplete="off">
 			
-				<label for="userid">Table ID:</label>
-				<input id="userid" name="roomId" required autocomplete="off">
+				<label for="inputRoomId">ID de table:</label>
+				<input id="inputRoomId" name="roomId" required autocomplete="off">
 			</div>
-		
+			</br>
+			<div id="table-list-container">
+				<label style="padding-left:0.5rem">Table en ligne:</label>
+				<select id="table-list" name="table-list" size="10" required>
+					<option value="one">one</option>
+					<option value="two">two</option>
+					<option value="tree">tree</option>
+					<option value="four">four</option>
+					<option value="four">four</option>
+					<option value="four">four</option>
+					<option value="four">four</option>
+					<option value="four">four</option>
+					<option value="four">four</option>
+					<option value="four">four</option>
+					<option value="four">four</option>
+					<option value="four">four</option>
+					<option value="four">four</option>
+			  </select>
+		</div>
 			<menu>
 				<button class="home-button">Rejoindre</button>
 				<button class="home-button" type="button" onclick="closeDialog('joinRoomDialog')">Annuler</button>
@@ -75,7 +95,7 @@
 	</dialog>
 
 	<dialog id="errorDialog" class="dialog">
-		<h2>Entrer votre nom et l'ID de table</h2>
+		<h2></h2>
 		<menu>
 			<button class="home-button" type="button" onclick="closeDialog('errorDialog')">Fermer</button>
 		</menu>
@@ -83,8 +103,6 @@
 
 	<main>
   	<div id="home-container">
-
-
 
       <div class="description">
         <p>Le jeu du dix est le jeu de carte officiel de l'AÉDIROUM.</p>
@@ -147,8 +165,9 @@
 			<div class="last-trick-container">
 				<label>Dernière lever</label>
 				<div  
-				onmouseenter="showLastTrick()" 
-				onmouseleave="hideLastTrick()"
+				id="last-trick"
+				onmouseenter="askShowLastTrick()" 
+				onmouseleave="askHideLastTrick()"
 				onclick="toggleTrickLock(event)"
 				class="card face-down">
 				</div>
@@ -206,7 +225,6 @@
 			</section>
 
 			<section class="player" id="player3">
-				<h2 id="player3-name">Coralie</h2>
 				<ol class="card-hand sidePlayer other" id="player3-hand">
 					<div class="card face-down"></div>
 					<div class="card face-down"></div>
@@ -219,6 +237,7 @@
 					<div class="card face-down"></div>
 					<div class="card face-down"></div>
 				</ol>
+				<h2 id="player3-name">Coralie</h2>
 			</section>
 
 			<section class="table-center">

@@ -21,6 +21,11 @@ gm = GamesManager()
 async def home():
     return HTMLResponse(content=homePage)
 
+@app.get("/roomsList")
+async def roomsList(
+):
+    return gm.roomsList
+
 @app.get("/validateConnectionToken")
 async def validateConnectionToken(
     token:str= Query(
@@ -98,4 +103,4 @@ async def websocket(
             raise HTTPException( status_code=418)
 
 if __name__== "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=5000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=True)

@@ -46,6 +46,23 @@ body {
 	color: #fff;
 	min-height: 100vh;
 }
+#table-list-container *{
+	display: block;
+	width:100%
+}
+
+#table-list {
+	list-style: none;
+	height: max-content;
+	max-height: 10rem;
+	color:white ;
+	justify-content:center ;
+	gap:2rem;
+	background-color: #1e1e2f;
+	border-radius: 8px;
+	padding: 1rem;
+}
+
 
 .description {
   text-align: center;
@@ -54,6 +71,10 @@ body {
   max-width: 700px;
   margin-left: auto;
   margin-right: auto;
+}
+.selectedCard{
+	transform: translateY(-2rem); /* move upward (forward) */
+	box-shadow: 0 0 10px 4px gold !important; /* glowing border */
 }
 
 .connection_options {
@@ -128,18 +149,26 @@ header h1 {
 	gap: 2rem;
 }
 
+input[type="checkbox"] {
+	transform: scale(2); /* 1 = normal size */
+	transform-origin: left;
+	width:auto !important
+  }
 .dialog-inputs{
+	gap:0.4rem;
+	min-width: 20rem;
 	padding: 1em;
 	padding-bottom: 0.5em;
-	justify-items: right;
 	display:grid;
 	grid-template-columns: max-content auto;
 }
 .dialog-inputs label{
 	padding-right: 0.5em;
+	justify-self: right;
 }
 .dialog-inputs input{
-	width:100%
+	width:100%;
+	justify-self:left;
 }
 .dialog{
 	position: fixed;
@@ -195,17 +224,10 @@ header h1 {
 	z-index: 10;
 }
 
-.card-hand.other > .card:not(:first-child) {
-	margin-left: -1rem;
-}
-.card-hand.other > .card:is(.face-down, .placeholder):not(:first-child) {
-	margin-left: -2rem;
-}
+
 .card-hand.myhand{
-	gap:0.5em;
+	gap:0.7em;
 }
-
-
   
   .card.face-down {
 	background-image: url(/graphics/face-down.svg);
@@ -231,21 +253,6 @@ header h1 {
 	height: 0;
 	width: 0;
 	font-size: 2em;
-  }
-  
-  .card.medium {
-	width: 2rem;
-	height: 3rem;
-	background-size: 3rem;
-  }
-  
-  .card.small {
-	width: .888em;
-	height: 1.333em;
-	border-radius: 2px;
-	vertical-align: -12.5%;
-	box-shadow: none;
-	border-width: 1px;
   }
   
   .card::before {
@@ -298,17 +305,6 @@ header h1 {
   .card.diamonds::after { background-image: url(/graphics/diamonds.svg); }
   .card.hearts::after { background-image: url(/graphics/hearts.svg); }
   .card.spades::after { background-image: url(/graphics/spades.svg); }
-  
-  .card.floating {
-	position: absolute;
-	top: 0;
-	left: 0;
-	transform: translate(0, 0);
-  }
-  
-  .card.animating {
-	transition: .5s ease transform;
-  }
 
 #play-area {
 	padding-top:2rem ;
@@ -322,6 +318,8 @@ header h1 {
 }
 
 .table-center {
+	background: radial-gradient(circle, #282848 60%, #1e1e2f 70%);
+	border-radius: 50rem; 
 	display: flex;
 	justify-content: center;
 	align-items: center;
@@ -334,6 +332,7 @@ header h1 {
 	grid-template-columns: repeat(3, 1fr);
 	grid-template-rows: repeat(3, 1fr);
 	align-items: center;
+	justify-items: center;
 	gap: 0 1rem;
 }
 
@@ -341,18 +340,40 @@ header h1 {
 	display: flex;
 	align-items: center;
 	flex-direction: column;
-	gap: 0.5rem;
 	position: relative;
 	align-self: stretch;
 }
 
 .sidePlayer {
-	transform: rotate(90deg);
+	flex-direction: column !important ;
 }
+#player2-hand .card{
+	margin-left : -2rem;
+}
+#player2-hand{
+	translate: 1rem 0  ;
+}
+
+#player1-hand{ 
+	translate: -1rem -2rem  ;
+}
+#player3-hand{ 
+	translate: 1rem -2rem  ;
+}
+.sidePlayer .card{
+	transform: rotate(90deg);
+	height:0 ;
+	width:0;
+	margin-bottom : -4rem !important; 
+}
+  
+.sidePlayer .card:hover {
+transform: rotate(90deg) scale(1.2);
+}
+  
 
 .table-center > ol > :nth-child(1) {
 	grid-area: 3 / 2;
-	margin-top: -1.5rem;
 }
 .table-center > ol > :nth-child(2) {
 	grid-area: 2 / 1;
@@ -360,10 +381,10 @@ header h1 {
 }
 .table-center > ol > :nth-child(3) {
 	grid-area: 1 / 2;
-	margin-bottom: -1.5rem;
 }
 .table-center > ol > :nth-child(4) {
 	grid-area: 2 / 3;
+	justify-self: left;
 }
 .table-center > ol > :nth-child(5) {
 	grid-area: 3 / 1;
@@ -430,19 +451,12 @@ header h1 {
 	grid-row: 3 / 4;
 }
 
-#player0 h2 {
-	top: 6rem;
-}
 
 #player1 {
 	grid-column: 1 / 2;
 	grid-row: 2 / 3;
-	justify-content: flex-end;
+	justify-self: right;
 	flex-direction: row-reverse;
-}
-
-#player1 h2 {
-	right: 9rem;
 }
 
 #player3 {
@@ -450,11 +464,17 @@ header h1 {
 	grid-row: 2 / 3;
 	justify-content: flex-end;
 	flex-direction: row;
-	align-self: center;
+	justify-self:  left;
 }
-
-#player3 h2 {
-	left: 9rem;
+#player1-name, #player3-name {
+	writing-mode: vertical-lr;
+}
+#player1-name{
+	translate: -2rem 0;
+	transform: rotate(180deg);
+}
+#player3-name{
+	translate: 2rem 0;
 }
 
 #player2 {
@@ -472,10 +492,6 @@ header h1 {
 	font-weight: bold;
 }
 
-#player2 h2 {
-	bottom: 6rem;
-}
-
 .last-trick-container{
 	align-items: left;
 	width: 100%;
@@ -484,8 +500,8 @@ header h1 {
 	flex-direction: column;
 	gap: 0.25rem ;
 }
-.last-trick-container div{
-	cursor: pointer;
+.last-trick-container label{
+	text-align: center;
 }
 
 #top-info-container{
@@ -509,9 +525,9 @@ header h1 {
 	align-self: center;
 }
 .score output {
+  align-content: center;
   min-width: 6.5ch;
   height: 3rem;
-  padding: .5rem;
   border: 2px solid var(--color-secondary);
   border-radius: 4px;
   font-size: 1.5rem;
@@ -537,19 +553,37 @@ header h1 {
 .trump label{
 	text-align: center;
 }
+@keyframes shake {
+	0%, 100%   { transform: translateX(0); }
+	20%, 60%   { transform: translateX(-10px); }
+	40%, 80%   { transform: translateX(10px); }
+}
+  
+.shake-error {
+animation: shake 0.5s ease;
+box-shadow: 0 0 10px 4px red!important; /* glowing border */
+border: 2px solid red;
+}
+
 
 @media screen and (max-width: 750px) {
 	h1 {
 		font-size: 1.5rem;
 	}
+	#trump, #last-trick{
+		padding: 7vw 5vw !important ;
+	}
 
 	#player0-hand{
 		flex-wrap:wrap;
-		width:70vw;
+		width:100vw;
 	}
 
 	h2 {
 		font-size: 1rem;
+	}
+	#header-buttons{
+		justify-content: center;
 	}
 
 	button {
@@ -579,24 +613,25 @@ header h1 {
 		display: flex;
 		gap: 2em ;
 	}
-	#player1, #player3{
-		justify-content: center;
+	#player3{
+		justify-content: left;
+	}
+	#player1{
+		justify-content: right;
 	}
 
+	.other{
+		display:none;
+	}
 
 	#play-area {
-		padding-top:2rem ;
+		padding-top:2.5rem ;
 		justify-content: center;
 		grid-template-columns: repeat(3, 18rem) ;
 		grid-template-rows: auto repeat(2, 18rem);
 		justify-content: center;
 	}
 
-	.table-center {
-		align-items: normal;
-		background: radial-gradient(circle, #282848 60%, #1e1e2f 70%);
-  		border-radius: 50rem; 
-	}
 
 
 	.player {
@@ -608,27 +643,19 @@ header h1 {
 		padding: 0.5rem;
 	}
 
-	#player0 h2 {
-		bottom: 4rem;
+	.score output {
+		min-width: 4rem;
 	}
-
-	#player1 h2 {
-		left: 3.5rem;
+	#player2{
+		height:0;
 	}
-
-	#player3 h2 {
-		right: 3.5rem;
+	#player1-name{
+		translate: 0 0;
 	}
-
-	#player1 h2 {
-		transform: rotate(-90deg);
+	#player2-name{
+		translate: 0 0;
 	}
-
-	#player2 h2 {
-		top: 4rem;
-	}
-
-	#player3 h2 {
-		transform: rotate(90deg);
+	#player3-name{
+		translate: 0 0;
 	}
 }

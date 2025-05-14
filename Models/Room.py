@@ -15,6 +15,7 @@ class Player(BaseModel):
     }
 
 class Room(BaseModel):
+    isPrivate: bool = Field(False)
     roomId :str 
     table : Table = Field(default_factory = Table)
     roomName : str
@@ -52,6 +53,14 @@ class Room(BaseModel):
             for player in self.players 
             if player is not None and player.isActive and not player.isBot
         ]
+        
+    @property
+    def botsCardinality(self):
+        return sum([
+            1
+            for player in self.players 
+            if player is not None and player.isBot
+        ])
 
     @property
     def state(self):

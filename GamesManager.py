@@ -18,6 +18,22 @@ class GamesManager():
         self.lengthOfRoomId = 5
         self.total_connection = 0
 
+    @property
+    def roomsList(self):    
+        
+        return [
+
+            {
+                "roomId":room.roomId,
+                "name":room.roomName, 
+                "numHumans": len(room.humans),
+                "numBots": room.botsCardinality,
+                "isStarted":room.table.ts.state != "waiting"
+            }
+            for roomId,room in self.games.items()
+            if not room.isPrivate
+        ]
+
     def generateRoomId(self):    
         
         roomId = "".join([ choice(UPPER) for _ in range(self.lengthOfRoomId) ])
@@ -105,9 +121,8 @@ class GamesManager():
         except Exception as e: 
             print(traceback.format_exc())
             for player in room.humans:
-                if player.isActive : 
-                    self.total_connection -= 1
-                    player.ws.close()
+                self.total_connection -= 1
+                await player.ws.close()
             print(e)
             self.games.pop(roomId)
 

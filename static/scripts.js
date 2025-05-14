@@ -5,16 +5,36 @@ let turn
 let data = null
 let trickLocked = false;
 let inGame = false
-let mouseOnLastTrick = false ;
+let selectedCard = null ;
+let lastTrickIsShown = false
 const cardRank = ["five", "six", "seven", "eight", "nine", "ten", "jack", "queen", "king", "ace"];
 const cardSuite = ["spades","hearts","clubs","diamonds"]
-/*
 let cardPlayedSound = new Audio("/audio/cardPlayed.mp3")
-*/
 let shuffleSound = new Audio("/audio/shuffle.mp3")
 
-function createNewRoom(name){
+function getRoomsList() {
+  fetch('/roomsList')
+    .then(async (response) => {
+      if (!response.ok) return;
+
+      const roomsList = await response.json(); // Correct way to parse JSON
+      const selection = document.getElementById("table-list");
+      let html = "";
+
+      roomsList.forEach((room) => {
+        html += `<option value="${room.id}">Table de ${room.name}</option>`;
+      });
+
+      selection.innerHTML = html;
+    })
+    .catch((error) => {
+      openDialog('errorDialog', "Erreur de connection au serveur.");
+    });
+}
+
+function createNewRoom(name, isPrivate){
     token = "newRoom:"+name
+    console.log(isPrivate)
     connect(token)
     closeDialog('createNewRoomDialog')
 }
@@ -36,6 +56,7 @@ function closeDialog(dialogId){
 
 function joinRoom(name,roomId){
   token = "joinRoom:"+name + "," + roomId
+  getRoomsList()
   connect(token)
   closeDialog('createNewRoomDialog')
 }
@@ -156,8 +177,6 @@ function updateBid(data){
     })
   }
   next_bid = Math.max(...data.bids, 45)+5
-  console.log(next_bid)
-  console.log(data.bids)
   myCard = document.getElementById("table-center-card0")
   data.bids.forEach((bid,seat)=>{
 
@@ -204,11 +223,17 @@ function playCard(data){
     randomCard = playerCards[Math.floor(Math.random() * playerCards.length)];
     randomCard.className = `card ${suite} ${rank}`
     target = document.getElementById("table-center-card"+id)
-    moveCard(randomCard, target)
+    if (window.innerWidth < 750){ 
+      sourceEl = document.getElementById("player"+id+"-name")
+      console.log(sourceEl)
+      moveCard(randomCard,target,sourceEl)
+    }
+    else{moveCard(randomCard,target)}
   }
 
   if (clearTableTimeout !== null){
-    updateTableCenter([null,null,null,null], data)
+    if (lastTrickIsShown){ updateTableCenter(data.lastCenter, data)}
+    else {updateTableCenter([null,null,null,null], data)}
     clearTimeout(clearTableTimeout)
     clearTableTimeout = null
   }
@@ -218,7 +243,12 @@ function playCard(data){
   // To let the players the time to look at what has just been played.
   if (data.center.every(x=>x===null) && data.state != "biding" ){
     clearTableTimeout = setTimeout(() => {
-      updateTableCenter(data.center, data)
+      if (lastTrickIsShown) {
+        updateTableCenter(data.lastCenter, data)
+      }else{
+        updateTableCenter(data.center, data)
+      }
+
       clearTableTimeout = null
     }, 4000);
   }
@@ -244,6 +274,7 @@ function processServer(data){
       break
 
     case "cardPlayed":
+      cardPlayedSound.play()
       showTrump(data)
       updatePoints(data)
       playCard(data)
@@ -264,7 +295,6 @@ function updateRoomId(data){
 }
 
 function updateTableCenter(center,data){
-  if (trickLocked) return
   center.forEach((card, seat)=>{
     if (data.state == "biding"){
       bid = data.bids[seat]
@@ -341,18 +371,23 @@ function renderOtherPlayerHands(data){
     playerHand.innerHTML=('<div class="card face-down"></div>'.repeat(number))
   })
 }
-function moveCard(card, target) {
+function moveCard(card, target, sourceEl=null) {
 
   if (!card || !target) return;
 
-  const cardRect = card.getBoundingClientRect();
+  const cardRect = (sourceEl || card).getBoundingClientRect();
   const targetRect = target.getBoundingClientRect();
+
+  if (lastTrickIsShown){
+    card.style.filter = "blur(5px)"
+    card.classList.add("blured")
+  } 
 
   // Set up absolute positioning
   card.style.position = "absolute";
-  card.style.zIndex = 1000;
+  card.style.zIndex = 10;
   card.style.left = cardRect.left + "px";
-  card.style.top = cardRect.top + "px";
+  card.style.top = cardRect.top  + "px";
 
   // Move to body to avoid layout conflicts
   document.body.appendChild(card);
@@ -367,7 +402,7 @@ function moveCard(card, target) {
 
   // Remove card from DOM after transition
   card.addEventListener("transitionend", () => {
-    target.className = card.className
+    if (!lastTrickIsShown) target.className = card.className
     card.remove();
   }, { once: true });
 }
@@ -400,9 +435,9 @@ function showTurn(data){
 }
 
 function updatePage(data){
-  if (data.action == "bid" || data.state == "biding"){
+  if ("biding"){
     updateBid(data)
-  } else {
+  } else if(!lastTrickIsShown) {
     updateTableCenter(data.center, data)
   }
   updateRoomId(data)
@@ -422,11 +457,23 @@ function newHand(){
   socket.send("newHand:none")
 }
 
+window.addEventListener("resize", () => {
+  if (window.innerWidth >= 750) {
+    // When the screen is over 750 width, no "confirm" selectedCard shenanigan
+    removeAllSelectedCard()
+    selectedCard = null
+  }
+});
 
-
-// The function on each player0 cards. 
-function askToPlayCard(cardEl){
-  let card = [null,null]
+function removeAllSelectedCard(skip=null){
+  Array.from(document.getElementsByClassName("selectedCard")).forEach((child)=>{
+    if (child === skip) return
+    child.classList.remove("selectedCard")
+    console.log("hmmm")
+  })
+}
+function card2Int(cardEl){
+  card = [null,null]
   cardEl.classList.forEach(className => {
 
     index = cardSuite.indexOf(className)
@@ -434,8 +481,64 @@ function askToPlayCard(cardEl){
 
     index = cardRank.indexOf(className)
     if (index!==-1) card[1] = index+5
-    msg = "playCard:" + card[0] + "," + card[1]
   });
+  return card
+}
+
+function isCardValid(cardEl){
+  if (data === null) return false
+  // Not the player's turn
+  if (data.turn != mySeat ) return false
+  // Not the time to play
+  if (data.state != "playing") return false
+
+  card = card2Int(cardEl)
+  suite = card[0]
+  rank = card[1]
+
+  // First card of the trick is always valid
+  if (data.center.every(x=>x===null)){
+    return true
+  }
+  count = data.center.reduce((acc,val)=>{
+    if (val !== null) return acc+1
+    return acc }
+  ,0)
+  askedSuite = data.center[(data.turn-count+4)%4][0]
+  // If it's the correct suite, it's valid
+  if (suite===askedSuite) return true
+  // If the player try to play a card that is not the askedSuite
+  // when he has the suite, return false.
+  for (let card of data.cards){
+    if (card[0] === askedSuite) return false
+  }
+  return true
+}
+
+// The function on each player0 cards. 
+function askToPlayCard(cardEl){
+  if (!isCardValid(cardEl)){
+    cardEl.classList.add("shake-error");
+  
+    setTimeout(() => {
+      cardEl.classList.remove("shake-error");
+    }, 1000);
+    return
+  } 
+
+  if (window.innerWidth < 750 && ( selectedCard != cardEl) ) { 
+    removeAllSelectedCard(skip=cardEl)
+    selectedCard = cardEl
+    cardEl.classList.add("selectedCard")
+    return
+  }
+  if (window.innerWidth < 750 && ( selectedCard === cardEl) ) { 
+    cardEl.classList.remove("selectedCard")
+  }
+  card = card2Int(cardEl)
+  suite = card[0]
+  rank = card[1]
+  msg = "playCard:" + suite + "," + rank 
   console.log("Sending:",msg)
   socket.send(msg)
 }
@@ -513,53 +616,77 @@ function lockWidth(elem) {
   elem.style.width = width;
 }
 
-function showLastTrick() {
-  mouseOnLastTrick = true 
-  if (!trickLocked && data && ["playing", "end"].includes(data.state)) {
-    // Show the trick only if not locked
-    updateTableCenter(data.lastCenter, data)
-    Array.from(document.getElementById("play-area").children).forEach((child)=>{
-      if (child.className == "table-center"){
-        return
-      }else{
-        child.style.filter = "blur(5px)"
-      }
-    })
+function askShowLastTrick(){
+  if (trickLocked) return
+  if (data && ["playing", "end"].includes(data.state)) {
+    showLastTrick()
   }
+}
+
+function askHideLastTrick(){
+  if (trickLocked) return
+  if (data && ["playing", "end"].includes(data.state)) {
+    hideLastTrick()
+  }
+
+}
+function showLastTrick() {
+  lastTrickIsShown = true
+  updateTableCenter(data.lastCenter, data)
+  for(let i = 0;i < 4; i++){
+    centerCard =document.getElementById("table-center-card"+i)
+    centerCard.style.zIndex = 100
+  }
+  Array.from(document.getElementById("play-area").children).forEach((child)=>{
+    if (child.className == "table-center"){
+      return
+    }else{
+      child.style.filter = "blur(5px)"
+    }
+  })
 }
 
   
 function hideLastTrick() {
-  mouseOnLastTrick = false
-  if (!trickLocked && data && ["playing", "end"].includes(data.state)) {
-    // Hide only if not locked
-    Array.from(document.getElementById("play-area").children).forEach((child)=>{
-      if (child.className == "table-center"){
-        return
-      }else{
-        child.style.filter = "blur(0px)"
-      }
-    })
-    updateTableCenter(data.center, data)
+  lastTrickIsShown = false
+  for(let i = 0;i < 4; i++){
+    centerCard =document.getElementById("table-center-card"+i)
+    centerCard.style.zIndex = "auto"
   }
+  Array.from(document.querySelectorAll(".blured")).forEach((el)=>{
+    if (el.classList.contains("card")) {
+      el.style.filter = "blur(0px)"
+    }
+  })
+  Array.from(document.getElementById("play-area").children).forEach((child)=>{
+    if (child.className == "table-center"){
+      return
+    }else{
+      child.style.filter = "blur(0px)"
+    }
+  })
+  updateTableCenter(data.center, data)
 }
 
-function toggleTrickLock(event) {
-  trickLocked = !trickLocked;
 
-  if (trickLocked) {
+function toggleTrickLock(event) {
+  if ( !data || !["playing", "end"].includes(data.state)) { return }
+
+  if (!trickLocked) {
     showLastTrick();
-    // Optional: prevent the click from bubbling to window
     event.stopPropagation();
+    const toggleTrickHandler = function (e) {
+      // prevent recursion if the click is on the same element
+      e.stopPropagation()
+      window.removeEventListener("click", toggleTrickHandler);
+      if (e.target === event.target) return;
+      hideLastTrick();
+      trickLocked = false;
+      lastTrickIsShown = false;
+    };
+    window.addEventListener("click", toggleTrickHandler);
   } else {
     hideLastTrick();
   }
+  trickLocked = !trickLocked
 }
-
-// To detect click elsewhere and unlock
-window.addEventListener("click", function () {
-  if (trickLocked) {
-    trickLocked = false;
-    hideLastTrick();
-  }
-});
