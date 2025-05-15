@@ -50,6 +50,17 @@ body {
 	display: block;
 	width:100%
 }
+#table-list option{
+	padding: 0.3rem;
+	font-size : 1.2rem; 
+}
+
+.hidden{
+	visibility: hidden;
+}
+.blurred{
+	filter: blur(5px) ;
+}
 
 #table-list {
 	list-style: none;
@@ -61,6 +72,7 @@ body {
 	background-color: #1e1e2f;
 	border-radius: 8px;
 	padding: 1rem;
+	margin-bottom: 1rem;
 }
 
 
@@ -149,7 +161,7 @@ header h1 {
 	gap: 2rem;
 }
 
-input[type="checkbox"] {
+#privateBox {
 	transform: scale(2); /* 1 = normal size */
 	transform-origin: left;
 	width:auto !important

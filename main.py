@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, WebSocket, Query,WebSocketException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
+from typing import Optional
 from GamesManager import GamesManager
 from string import ascii_letters, digits
 alphanum = ascii_letters+digits + "- " + "ùûüÿàâçéèêëïîô"
@@ -18,7 +19,8 @@ with open("static/index.html", "r") as f:
 gm = GamesManager()
 
 @app.get("/", response_class=HTMLResponse)
-async def home():
+async def home(
+):
     return HTMLResponse(content=homePage)
 
 @app.get("/roomsList")
@@ -29,7 +31,7 @@ async def roomsList(
 @app.get("/validateConnectionToken")
 async def validateConnectionToken(
     token:str= Query(
-        ..., description="The action:value token.", max_length=30
+        ..., description="The action:value.", max_length=50
     )
 ):
     # Validate and return the separated token. Raises HTTP error otherwise.
@@ -44,14 +46,14 @@ def _validateConnectionToken(token:str):
         or 
         len(gm.games) > gm.number_allowed_alive_games
     ) :
-        raise HTTPException(status_code=503, detail="Too many players for server capacity.")
+        raise HTTPException(status_code=503, detail="Trop de joueur sur le serveur.")
 
     # Sanitize and process token
     token = token.strip()
     if (
         any([(car not in alphanum+":,") for car in token])
         or
-        not ( m:= re.match(r'^(\w+):((?:\w+(?: \w+)*)(?:,\s*\w+(?: \w+)*)*)$',token)) 
+        not ( m:= re.match(r'^(newRoom|joinRoom):((?:\w*(?: \w*)*)(?:,\s*\w*(?: \w*)*)*)$',token)) 
     ):
         print(token)
         raise HTTPException( status_code=400, detail="Bad connection token.")
@@ -62,8 +64,8 @@ def _validateConnectionToken(token:str):
             if sum([car=="," for car in value]) >= 1: 
                 raise HTTPException( status_code=400, detail="Bad connection token.")
             playerName = value
-            if playerName == "null" or playerName == "" or len(playerName) <= 2 or len(playerName) >=21 :
-                raise HTTPException( status_code=400, detail="Le nom doit être entre 3 et 20 caractères.")
+            if playerName == "null" or len(playerName) >=21 :
+                raise HTTPException( status_code=400, detail="Le nom doit avoir maximum 20 caractères.")
             return action,playerName
         case "joinRoom":
             nbrComma = sum([car=="," for car in value]) 
@@ -93,8 +95,7 @@ async def websocket(
         case "newRoom":
             roomId = gm.generateRoomId()
             playerName = value
-            gm.createRoom(roomId, playerName)
-            await gm.connect(ws,roomId,playerName, 0)
+            await gm.connect(ws,roomId,playerName, 0, newRoom=True)
         case "joinRoom":
             playerName,roomId,seatIndex = value
             await gm.connect(ws,roomId,playerName, seatIndex)

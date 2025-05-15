@@ -12,6 +12,95 @@ const cardSuite = ["spades","hearts","clubs","diamonds"]
 let cardPlayedSound = new Audio("/audio/cardPlayed.mp3")
 let shuffleSound = new Audio("/audio/shuffle.mp3")
 
+async function createNewRoom(name, isPrivate) {
+  const token = "newRoom:" + name;
+  const result = await validateConnection(token);
+
+  if (result.ok) {
+    connect(token);
+  } else if (result.response) {
+    const errorObj = await result.response.json();
+    openDialog("errorDialog", errorObj.detail);
+  }
+
+  closeDialog("createNewRoomDialog");
+}
+
+async function joinRoom(name, roomId) {
+  console.log(roomId)
+  const token = "joinRoom:" + name + "," + roomId;
+  const result = await validateConnection(token);
+
+  if (result.ok) {
+    connect(token);
+  } else if (result.response) {
+    const errorObj = await result.response.json();
+    openDialog("errorDialog", errorObj.detail);
+    updateURL(null)
+  }
+
+  closeDialog("joinRoomDialog");
+}
+
+// Returns: { ok: true, response } or { ok: false, response }
+async function validateConnection(token) {
+  try {
+    const response = await fetch(`/validateConnectionToken?token=${token}`);
+    return { ok: response.ok, response };
+  } catch (error) {
+    openDialog("errorDialog", "Erreur de connexion au serveur.");
+    return { ok: false, response: null };
+  }
+}
+
+
+function connect(token){
+
+  const wsUrl = `/ws?token=` + token
+
+  socket = new WebSocket(wsUrl)
+
+  socket.onopen = () => { 
+    console.log("Connected to:", wsUrl); 
+    toggleMainMenu()
+  }
+
+  socket.onmessage = (event) => {
+      data = JSON.parse(event.data)
+      updateScriptState(data)
+      console.log("Message from server:", data);
+      processServer(data)
+  }
+  socket.onerror = (event) =>{
+      console.log(event)
+  }
+  socket.onclose = (event) => {
+      console.log("Socket closed.")
+      toggleMainMenu()
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const roomId = new URLSearchParams(window.location.search).get("roomId");
+  // look if there is a connection token, if not abort.
+  if (!roomId) return
+
+  const storedName = localStorage.getItem("playerName");
+  if (storedName) {
+    joinRoom(storedName, roomId)
+  } else {
+    openDialog("preRoom")
+    dialog = document.getElementById("preRoom")
+    dialog.addEventListener("submit", () => {
+      const form = dialog.querySelector("form");
+      const nameInput = form.elements["username"];
+      const name = nameInput.value.trim();
+      joinRoom(name, roomId);
+    }, { once: true });
+  }
+});
+
+
 function getRoomsList() {
   fetch('/roomsList')
     .then(async (response) => {
@@ -22,22 +111,17 @@ function getRoomsList() {
       let html = "";
 
       roomsList.forEach((room) => {
-        html += `<option value="${room.id}">Table de ${room.name}</option>`;
+        html += `<option class="room-option" value="${room.roomId}">Table de ${room.name} (${room.numBots + room.numHumans}/4)</option>`;
       });
 
       selection.innerHTML = html;
+      return roomsList
     })
     .catch((error) => {
       openDialog('errorDialog', "Erreur de connection au serveur.");
     });
 }
 
-function createNewRoom(name, isPrivate){
-    token = "newRoom:"+name
-    console.log(isPrivate)
-    connect(token)
-    closeDialog('createNewRoomDialog')
-}
 function openDialog(dialogId, truc=""){
   const dialog = document.getElementById(dialogId)
   dialog.showModal()
@@ -54,15 +138,10 @@ function closeDialog(dialogId){
   document.body.style.filter = "none"
 }
 
-function joinRoom(name,roomId){
-  token = "joinRoom:"+name + "," + roomId
-  getRoomsList()
-  connect(token)
-  closeDialog('createNewRoomDialog')
-}
 
 function toggleMainMenu(){
   if (inGame){
+    updateURL(null)
     document.getElementById("home-container").style.display = "block"
     document.getElementById("game-container").style.display = "None"
     document.getElementById("header-buttons").style.display = "none"
@@ -76,50 +155,7 @@ function toggleMainMenu(){
   inGame = !inGame
 }
 
-function connect(token){
 
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const host = window.location.host 
-  const wsUrl = `${protocol}://${host}/ws?token=` + token
-
-  fetch("http://"+host+'/validateConnectionToken?token='+token)
-  .then(async response=>{
-  if (!response.ok){
-    if (response.status === 404){
-      openDialog('errorDialog',"Erreur du serveur.")
-    }else{
-      errorObj = await response.json()
-      errorMsg = errorObj.detail
-      openDialog('errorDialog', errorMsg)
-    }
-  }else{
-
-    socket = new WebSocket(wsUrl)
-
-    socket.onopen = () => { 
-      console.log("Connected to:", wsUrl); 
-      toggleMainMenu()
-    }
-
-    socket.onmessage = (event) => {
-        data = JSON.parse(event.data)
-        updateScriptState(data)
-        console.log("Message from server:", data);
-        processServer(data)
-    }
-    socket.onerror = (event) =>{
-        console.log(event)
-    }
-    socket.onclose = (event) => {
-        console.log("Socket closed.")
-        toggleMainMenu()
-    }
-  }})
-  .catch((error)=>{
-    openDialog('errorDialog',"Erreur de connection au serveur.")
-  }
-  )
-}
 function updateScriptState(data){
   mySeat = data.mySeat
   turn = data.turn
@@ -225,7 +261,6 @@ function playCard(data){
     target = document.getElementById("table-center-card"+id)
     if (window.innerWidth < 750){ 
       sourceEl = document.getElementById("player"+id+"-name")
-      console.log(sourceEl)
       moveCard(randomCard,target,sourceEl)
     }
     else{moveCard(randomCard,target)}
@@ -254,10 +289,24 @@ function playCard(data){
   }
 }
 
+function updateURL(data){
+  const url = new URL(window.location.href)
+  if (data && inGame){
+    url.searchParams.set("roomId", data.roomId)
+  }else{
+    url.searchParams.delete("roomId")
+  }
+  window.history.replaceState({},"",url);
+}
+
 function processServer(data){
   action = data.action
   showTurn(data)
   switch (action){
+
+    case "playerJoined":
+      updateNames(data)
+      break
 
     case "invalid":
       console.log(data.msg)
@@ -341,6 +390,7 @@ function updatePoints(data){
 }
 
 function updateNames(data){
+  localStorage.setItem("playerName", data.players[mySeat].name);
   data.players.forEach((player, seat)=>{
     if (!player){
       playerName = "En attente"
@@ -379,8 +429,7 @@ function moveCard(card, target, sourceEl=null) {
   const targetRect = target.getBoundingClientRect();
 
   if (lastTrickIsShown){
-    card.style.filter = "blur(5px)"
-    card.classList.add("blured")
+    card.classList.add("blurred")
   } 
 
   // Set up absolute positioning
@@ -391,6 +440,7 @@ function moveCard(card, target, sourceEl=null) {
 
   // Move to body to avoid layout conflicts
   document.body.appendChild(card);
+  card.classList.add("movingCard")
 
   // Force layout reflow
   card.offsetWidth;
@@ -402,7 +452,12 @@ function moveCard(card, target, sourceEl=null) {
 
   // Remove card from DOM after transition
   card.addEventListener("transitionend", () => {
-    if (!lastTrickIsShown) target.className = card.className
+    cardInt = card2Int(card)
+    suite = cardInt[0]
+    rank  = cardInt[1]
+    if (!lastTrickIsShown &&
+      data.center.filter(x=>x!==null).some(x=>x[0]==suite && x[1]==rank)
+    ){ target.className = card.className}
     card.remove();
   }, { once: true });
 }
@@ -433,6 +488,11 @@ function showTurn(data){
     }
   }
 }
+function deleteMovingCards(){
+  Array.from(document.getElementsByClassName("movingCard")).forEach((card)=>{
+    card.remove()
+  })
+}
 
 function updatePage(data){
   if ("biding"){
@@ -440,6 +500,8 @@ function updatePage(data){
   } else if(!lastTrickIsShown) {
     updateTableCenter(data.center, data)
   }
+  updateURL(data)
+  deleteMovingCards()
   updateRoomId(data)
   showTrump(data)
   updatePoints(data)
@@ -447,6 +509,8 @@ function updatePage(data){
   renderMyHand(data)
   renderOtherPlayerHands(data)
   showTurn(data)
+  player2 = document.getElementById("player2")
+  lockHeight(player2)
 }
 
 function newGame(){
@@ -463,6 +527,11 @@ window.addEventListener("resize", () => {
     removeAllSelectedCard()
     selectedCard = null
   }
+  player2 = document.getElementById("player2")
+  lockHeight(player2)
+});
+window.addEventListener("load", () => {
+  return
 });
 
 function removeAllSelectedCard(skip=null){
@@ -612,9 +681,16 @@ function restoreText(elem) {
 }
 // Ensure that the button does't change in size when inner text become "Copier"
 function lockWidth(elem) {
+  elem.style.width= ''; 
   const width = elem.offsetWidth + "px";
   elem.style.width = width;
 }
+function lockHeight(elem) {
+  elem.style.height = ''; 
+  const height = elem.offsetHeight + "px";
+  elem.style.height = height;
+}
+
 
 function askShowLastTrick(){
   if (trickLocked) return
@@ -653,9 +729,9 @@ function hideLastTrick() {
     centerCard =document.getElementById("table-center-card"+i)
     centerCard.style.zIndex = "auto"
   }
-  Array.from(document.querySelectorAll(".blured")).forEach((el)=>{
+  Array.from(document.querySelectorAll(".blurred")).forEach((el)=>{
     if (el.classList.contains("card")) {
-      el.style.filter = "blur(0px)"
+      el.classList.remove = "blurred"
     }
   })
   Array.from(document.getElementById("play-area").children).forEach((child)=>{

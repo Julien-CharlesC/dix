@@ -1,8 +1,8 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Query
 from string import ascii_letters, digits
-from string import ascii_uppercase as UPPER 
+idAlphabet = ascii_letters+digits
 alphanum = ascii_letters+digits + "- " + "ùûüÿàâçéèêëïîô"
-from random import choice
+from random import choice, random
 import re, json, asyncio
 import traceback
 
@@ -10,17 +10,27 @@ from Models.Room import Room, Player
 from Models.Table import Table
 from Models.RandoBot import RandoBot
 
+# Sample syllables and themes
+prefixes = ["Bit", "Byte", "Null", "Bug", "Stack", "Heap", "Seg", "Core", "RAM", "Cache", "Fork", "Ping", "Loop", "Zero", "Crypto", "Kernel", "Git", "Mega", "Nano", "Logic"]
+middles = ["ly", "on", "rix", "ta", "zo", "net", "hack", "bin", "script", "ware", "sync", "data", "bot", "flux", "byte", "dex"]
+suffixes = ["man", "ster", "face", "lord", "son", "zilla", "zilla", "borg", "bot", "crash", "dump", "node", "runner", "smith", "dev", "er"]
+
+# Realistic first name base for humor
+funny_first_parts = ["Al", "Ada", "Linus", "Dennis", "Tux", "Neo", "Codey", "Chip", "Bo", "Hex", "Algo", "Compu", "Syntax", "Clippy", "Macro", "Bitty", "Ramsey", "Debugger", "Loopie"]
+funny_last_parts = ["McBug", "Stackover", "Segfault", "Bytecrusher", "Hackwell", "Crasher", "Binaire", "Kernelson", "Gitman", "OLoop", "Bitfield", "Nullman", "Coreburn", "Bugstein", "Devnull", "RAMirez", "Hackermann", "Cyberwitz", "Pinglish", "Cronwell"]
+
 class GamesManager():
 
     def __init__(self):
         self.games = dict()
-        self.number_allowed_alive_games = 5
-        self.lengthOfRoomId = 5
+        self.number_allowed_alive_games = 10
+        self.lengthOfRoomId = 6
         self.total_connection = 0
+        self.randomNameConflictCounter= 0
 
     @property
     def roomsList(self):    
-        
+        # Use by the front end to show the players which game can be joined
         return [
 
             {
@@ -34,11 +44,26 @@ class GamesManager():
             if not room.isPrivate
         ]
 
+    def generateRandomName(self, room:Room):
+        # 50/50 mix of themed and random-style
+        if random() < 0.5:
+            first = choice(funny_first_parts)
+            last = choice(funny_last_parts)
+        else:
+            first = choice(prefixes) + choice(middles)
+            last = choice(prefixes) + choice(suffixes)
+        name =  f"{first} {last}"
+        if name in [p.name for p in room.players if p is not None]:
+            name += self.randomNameConflictCounter
+            self.randomNameConflictCounter += 1
+        return name
+
+
     def generateRoomId(self):    
         
-        roomId = "".join([ choice(UPPER) for _ in range(self.lengthOfRoomId) ])
+        roomId = "".join([ choice(idAlphabet) for _ in range(self.lengthOfRoomId) ])
         while self.doesRoomIdExist(roomId):
-            roomId = "".join([ choice(UPPER) for _ in range(self.lengthOfRoomId) ])
+            roomId = "".join([ choice(idAlphabet) for _ in range(self.lengthOfRoomId) ])
         return roomId
 
     def doesRoomIdExist(self,roomId):
@@ -68,30 +93,35 @@ class GamesManager():
     def wherePlayerCanJoin(self,roomId,playerName):
         # chech if room exist
         if not self.doesRoomIdExist(roomId):
-            return False, "The room doesn't exist."
-        room = self.games[roomId]
+            return False, "La table n'existe pas."
+        room : Room = self.games[roomId]
 
         for seat,player in enumerate(room.players):
             # check if the name is not allready taken AND connected 
             if player is not None and player.name == playerName and player.isActive :
-                return False, "Name allready taken."
+                return False, "Un jouer actif possède déjà ce nom."
             # check if player want to reconnect
             if player is not None and player.name == playerName and not player.isActive :
                 return True, seat
 
         # check is there is an available seat
         if not any(player is None for player in room.players):
-            return False, "The room if full."
+            return False, "La table est pleine."
 
         return True, room.players.index(None)
 
     # Suppose that all verification is done and that the connection
     # is secure and will succed to the room
-    async def connect(self,ws:WebSocket,roomId,playerName,indexSeat):
-        
+    async def connect(self,ws:WebSocket,roomId,playerName,indexSeat, newRoom=False):
         await ws.accept()
         self.total_connection += 1
+
+        if newRoom : self.createRoom(roomId, playerName)
         room : Room = self.games.get(roomId)
+        if playerName == "" : 
+            playerName = self.generateRandomName(room)
+            room.roomName = playerName
+
         print(f"{self.total_connection=}")
         player = Player(
             isActive = True,
@@ -102,7 +132,7 @@ class GamesManager():
         )
         room.players[indexSeat] = player
         # TODO action is newPlayer arrived
-        await self.playerAct("update","",room,player)
+        await self.playerAct("connectionAccepted","",room,player)
         print(room)
 
         try :
@@ -113,7 +143,9 @@ class GamesManager():
             self.total_connection -= 1
             player.isActive = False
             print(f"{self.total_connection=}")
-            # Del the room if no player in it.
+            # Del the room if no player in it. But let few seconds for refresh.
+            await asyncio.sleep(1)
+            if player.isActive : return
             if not any(player.isActive for player in room.humans):
                 self.games.pop(roomId)
             else :
@@ -147,6 +179,7 @@ class GamesManager():
         table = room.table
         repetition = 0
         while table.ts.state == "biding" and room.players[table.ts.turn].isBot :
+            await asyncio.sleep(1)
             botPlayer = room.players[table.ts.turn]
             bot : RandoBot = botPlayer.ws
             bid = bot.bid()
@@ -157,7 +190,6 @@ class GamesManager():
                 print("Invalid play by bot, freezing the game.",msg)
                 break
             table.bid(botPlayer.seat, bid)
-            await asyncio.sleep(1)
             await self.updatePlayers(room, "bid")
             repetition += 1
             if repetition > 10 : raise Exception("Infinite Loop")
@@ -165,6 +197,7 @@ class GamesManager():
         #Bot playing
         repetition = 0
         while table.ts.state == "playing" and room.players[table.ts.turn].isBot :
+            await asyncio.sleep(1)
             botPlayer = room.players[table.ts.turn]
             bot : RandoBot = botPlayer.ws
             suite, rank = bot.selectCard()
@@ -174,16 +207,19 @@ class GamesManager():
                 print("Invalid play by bot, freezing the game.",msg)
                 break
             table.playCard(botPlayer.seat, [suite,rank])
-            await asyncio.sleep(1)
             await self.updatePlayers(room, "cardPlayed", msg=f"{botPlayer.seat},{suite},{rank}")
             repetition += 1
             if repetition > 10 : raise Exception("Infinite Loop")
 
     async def playerAct(self,action:str,value:str,room:Room,player:Player):
         print(action,value)
-        state : dict = room.state
         table : Table = room.table
         match action:
+
+            case "connectionAccepted":
+                await self.updatePlayer(room, "update", player, msg="")
+                await self.updatePlayers(room, "playerJoined")
+
             case "bid":
                 if not re.match(r'^(?:\d{1,3})$', value) :
                     self.updatePlayer(room, "invalid", player, msg="Bad bid token.")

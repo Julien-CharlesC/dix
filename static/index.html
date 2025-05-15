@@ -32,24 +32,14 @@
 			>Quitter</div>
 		</div>
     </header>
-	<dialog id="lastTrick" class="dialog">
-		<section class="table-center">
-			<ol>
-				<div class="card placeholder" id="trickCard0"></div>
-				<div class="card placeholder" id="trickCard1"></div>
-				<div class="card placeholder" id="trickCard2"></div>
-				<div class="card placeholder" id="trickCard3"></div>
-			</ol>
-		</section>
-	</dialog>
 	<dialog id="createNewRoomDialog" class="dialog">
 		<h2>Créer votre table</h2>
 		<form method="dialog" onsubmit="createNewRoom(this.username.value, this.private.checked) ">
 			<div class="dialog-inputs">
-				<label for="username">Nom de joueur:</label>
-				<input id="username" name="username" required autocomplete="off">
-				<label for="private">Table privée:</label>
-				<input id="private" name="private" type="checkbox">
+				<label for="createName">Nom de joueur:</label>
+				<input id="createName" name="username" autocomplete="off">
+				<label for="privateBox">Table privée:</label>
+				<input id="privateBox" name="private" type="checkbox">
 			</div>
 			<menu>
 				<button class="home-button" type="submit">Créer table</button>
@@ -58,37 +48,35 @@
 		</form>
 	</dialog>
 
+	<dialog id="preRoom" class="dialog">
+		<h2>Entrer ton nom de joueur</h2>
+		<form method="dialog">
+			<div class="dialog-inputs">
+				<label for="preRoomName">Nom de joueur:</label>
+				<input class="username" id="preRoomName" name="username" autocomplete="off">
+			</div>
+			<menu>
+				<button class="home-button" type="submit">Rejoindre</button>
+				<button class="home-button" type="button" onclick="updateURL(null) ; closeDialog('preRoom')">Annuler</button>
+			</menu>
+		</form>
+	</dialog>
 	<dialog id="joinRoomDialog" class="dialog">
 		<h2>Choisir une table</h2>
 		<form method="dialog" onsubmit="joinRoom(this.elements.username.value, this.elements.roomId.value)">
+
 			<div class="dialog-inputs">
-				<label for="username">Nom de joueur:</label>
-				<input id="username" name="username" required autocomplete="off">
-			
-				<label for="inputRoomId">ID de table:</label>
-				<input id="inputRoomId" name="roomId" required autocomplete="off">
+				<label for="joinName">Nom de joueur:</label>
+				<input class="username" id="joinName" name="username"  autocomplete="off">
 			</div>
 			</br>
 			<div id="table-list-container">
 				<label style="padding-left:0.5rem">Table en ligne:</label>
-				<select id="table-list" name="table-list" size="10" required>
-					<option value="one">one</option>
-					<option value="two">two</option>
-					<option value="tree">tree</option>
-					<option value="four">four</option>
-					<option value="four">four</option>
-					<option value="four">four</option>
-					<option value="four">four</option>
-					<option value="four">four</option>
-					<option value="four">four</option>
-					<option value="four">four</option>
-					<option value="four">four</option>
-					<option value="four">four</option>
-					<option value="four">four</option>
-			  </select>
+				<select id="table-list" name="roomId" size="10" required>
+			  	</select>
 		</div>
 			<menu>
-				<button class="home-button">Rejoindre</button>
+				<button class="home-button" type="submit">Rejoindre</button>
 				<button class="home-button" type="button" onclick="closeDialog('joinRoomDialog')">Annuler</button>
 			</menu>
 		</form>
@@ -115,7 +103,7 @@
           <h3>Créer une nouvelle table</h3>
         </div>
         <div class="connection_option home-button"
-          onclick="openDialog('joinRoomDialog')"
+          onclick="getRoomsList() ; openDialog('joinRoomDialog')"
         >
           <h3>Rejoindre une table</h3>
         </div>
