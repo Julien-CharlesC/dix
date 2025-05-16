@@ -407,13 +407,12 @@ function updatePoints(data){
 }
 
 function updateNames(data){
-  data.players.forEach((player)=>{
+  data.players.forEach((player, seat)=>{
     if (player && player.seat == mySeat) localStorage.setItem("playerName", player.name);
     if (!player){
       playerName = "En attente"
       isActive   = true
     }else{
-      seat = player.seat
       playerName = player.name
       isActive   = player.isActive
     }
