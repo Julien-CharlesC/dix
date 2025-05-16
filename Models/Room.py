@@ -20,6 +20,12 @@ class Room(BaseModel):
     table : Table = Field(default_factory = Table)
     roomName : str
     players : List[Optional[Player]] = Field(default_factory=lambda:[None]*4)
+    botTime2Act : int = 1
+    host : int = Field(
+        0, 
+        description="The index seat of the player that control the room."
+        )
+
     model_config = {
         "arbitrary_types_allowed": True
     }
@@ -64,17 +70,18 @@ class Room(BaseModel):
 
     @property
     def state(self):
-        return {
-            "roomId" : self.roomId,
-            "roomName" : self.roomName,
-            "players" : [
-                {
+        players = [None]*4
+        for player in [p for p in self.players if p is not None]:
+            players[player.seat] = {
                     "name" : player.name,
                     "isBot": player.isBot, 
                     "isActive": player.isActive, 
                     "seat": player.seat
-                } if player is not None 
-                else  None
-                for player in self.players
-            ]
+            } 
+
+        return {
+            "roomId" : self.roomId,
+            "roomName" : self.roomName,
+            "host": self.host,
+            "players" : players,
         } | self.table.state

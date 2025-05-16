@@ -2,7 +2,9 @@ let mySeat
 let clearTableTimeout = null
 let next_bid = 50
 let turn
+let socket
 let data = null
+let audioOn = true
 let trickLocked = false;
 let inGame = false
 let selectedCard = null ;
@@ -14,6 +16,7 @@ let shuffleSound = new Audio("/audio/shuffle.mp3")
 
 async function createNewRoom(name, isPrivate) {
   const token = "newRoom:" + name;
+  console.log(token)
   const result = await validateConnection(token);
 
   if (result.ok) {
@@ -27,8 +30,8 @@ async function createNewRoom(name, isPrivate) {
 }
 
 async function joinRoom(name, roomId) {
-  console.log(roomId)
   const token = "joinRoom:" + name + "," + roomId;
+  console.log(token)
   const result = await validateConnection(token);
 
   if (result.ok) {
@@ -76,11 +79,11 @@ function connect(token){
   }
   socket.onclose = (event) => {
       console.log("Socket closed.")
-      toggleMainMenu()
+      toggleMainMenu(getOut=true)
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("load", () => {
   const roomId = new URLSearchParams(window.location.search).get("roomId");
   // look if there is a connection token, if not abort.
   if (!roomId) return
@@ -100,12 +103,16 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+window.addEventListener("beforeunload", (event) => {
+  if (socket) socket.close()
+});
+
+
 
 function getRoomsList() {
   fetch('/roomsList')
     .then(async (response) => {
-      if (!response.ok) return;
-
+      if (!response.ok){ console.log("Error fetching roomsList") ; return;}
       const roomsList = await response.json(); // Correct way to parse JSON
       const selection = document.getElementById("table-list");
       let html = "";
@@ -115,7 +122,6 @@ function getRoomsList() {
       });
 
       selection.innerHTML = html;
-      return roomsList
     })
     .catch((error) => {
       openDialog('errorDialog', "Erreur de connection au serveur.");
@@ -137,22 +143,26 @@ function closeDialog(dialogId){
   document.getElementById(dialogId).close()
   document.body.style.filter = "none"
 }
+function quit(){
+  toggleMainMenu(getOut=true)
+  if ( socket ) socket.close()
+}
 
-
-function toggleMainMenu(){
-  if (inGame){
+function toggleMainMenu(getOut=null){
+  if (getOut || inGame){
+    inGame = false
     updateURL(null)
     document.getElementById("home-container").style.display = "block"
     document.getElementById("game-container").style.display = "None"
     document.getElementById("header-buttons").style.display = "none"
     document.getElementById("header").classList.remove("game-header")
   }else{
+    inGame = true
     document.getElementById("game-container").style.display = "flex"
     document.getElementById("header-buttons").style.display = "flex"
     document.getElementById("home-container").style.display = "none"
     document.getElementById("header").classList.add("game-header")
   }
-  inGame = !inGame
 }
 
 
@@ -232,6 +242,13 @@ function updateBid(data){
       myCard.classList.remove("glow")
     }
   })
+  nousBid = Math.max(data.bids[mySeat], data.bids[(mySeat+2)%4])
+  vousBid = Math.max(data.bids[mySeat+1], data.bids[(mySeat+3)%4])
+  if (nousBid == 0) nousBid = "&empty;"
+  if (vousBid == 0) vousBid = "&empty;"
+
+  nous = document.getElementById("bid-home").innerHTML = "Mise : " + nousBid
+  vous = document.getElementById("bid-away").innerHTML = "Mise : " + vousBid
 }
 
 function findMyCard(strSuite,strRank){
@@ -323,7 +340,7 @@ function processServer(data){
       break
 
     case "cardPlayed":
-      cardPlayedSound.play()
+      if (audioOn) cardPlayedSound.play()
       showTrump(data)
       updatePoints(data)
       playCard(data)
@@ -340,7 +357,7 @@ function seat2Id(playerSeat){
 }
 function updateRoomId(data){
   // Update roomId
-  document.getElementById("roomId").innerHTML = data.roomId
+  document.getElementById("roomIdCopy").innerHTML = data.roomId
 }
 
 function updateTableCenter(center,data){
@@ -390,12 +407,13 @@ function updatePoints(data){
 }
 
 function updateNames(data){
-  localStorage.setItem("playerName", data.players[mySeat].name);
-  data.players.forEach((player, seat)=>{
+  data.players.forEach((player)=>{
+    if (player && player.seat == mySeat) localStorage.setItem("playerName", player.name);
     if (!player){
       playerName = "En attente"
       isActive   = true
     }else{
+      seat = player.seat
       playerName = player.name
       isActive   = player.isActive
     }
@@ -404,7 +422,13 @@ function updateNames(data){
     player.innerHTML = playerName
     if (!isActive){ player.style.color = "red" } 
     else{ player.style.color="white"}
+    const playerPlace = document.getElementById("playerPlace" + id)
+    playerPlace.innerHTML = playerName
   })
+  host = document.getElementById("player"+seat2Id(data.host)+"-name")
+  host.innerHTML += " : host" // display a crown for the host
+  //host.innerHTML += "&#128081;" // display a crown for the host
+
 }
 function showTrump(data){
   trumpSuite = cardSuite[data.trump]
@@ -446,7 +470,7 @@ function moveCard(card, target, sourceEl=null) {
   card.offsetWidth;
 
   // Start transition
-  card.style.transition = "all 0.8s ease";
+  card.style.transition = "left 0.8s ease, top 0.8s ease, filter 0s";
   card.style.left = targetRect.left + "px";
   card.style.top = targetRect.top + "px";
 
@@ -456,8 +480,14 @@ function moveCard(card, target, sourceEl=null) {
     suite = cardInt[0]
     rank  = cardInt[1]
     if (!lastTrickIsShown &&
-      data.center.filter(x=>x!==null).some(x=>x[0]==suite && x[1]==rank)
-    ){ target.className = card.className}
+    // At the end of the transition, if the card is not from the actual trick,
+    // we do not show it at the center.
+      !(
+      data.lastCenter.filter(x=>x!==null).some(x=>x[0]==suite && x[1]==rank)
+      && 
+      data.center.some(x=>x!==null)
+      )
+    ){ target.className = `card ${cardSuite[suite]} ${cardRank[rank-5]}`}
     card.remove();
   }, { once: true });
 }
@@ -495,7 +525,7 @@ function deleteMovingCards(){
 }
 
 function updatePage(data){
-  if ("biding"){
+  if (data.state == "biding"){
     updateBid(data)
   } else if(!lastTrickIsShown) {
     updateTableCenter(data.center, data)
@@ -514,11 +544,27 @@ function updatePage(data){
 }
 
 function newGame(){
-  socket.send("newGame:none")
+  if (data && mySeat == data.host) socket.send("newGame:none")
 }
+
+function botTime2Act(sec){
+  if (socket && data && data.host == mySeat) socket.send("botTime2Act:"+sec)
+}
+function id2Seat(id){
+  return 
+}
+
+function changeSeat(id){
+  if (data || data.state != "waiting") return
+  seat = id2Seat(id)
+  if ( seat != mySeat && socket && data && inGame ){
+    socket.send("changeSeat:"+seat)
+  } 
+}
+
 function newHand(){
-  shuffleSound.play()
-  socket.send("newHand:none")
+  if (audioOn && data && data.host == mySeat) shuffleSound.play()
+  if (data && mySeat == data.host) socket.send("newHand:none")
 }
 
 window.addEventListener("resize", () => {
@@ -538,7 +584,6 @@ function removeAllSelectedCard(skip=null){
   Array.from(document.getElementsByClassName("selectedCard")).forEach((child)=>{
     if (child === skip) return
     child.classList.remove("selectedCard")
-    console.log("hmmm")
   })
 }
 function card2Int(cardEl){
@@ -646,6 +691,7 @@ function confirmBid(){
   socket.send("bid:"+bid)
 }
 
+// deprecated, use to copy roomId to clipboard
 function copyToClipboard(elem) {
   text = elem._originalText
   if (navigator.clipboard && window.isSecureContext) {
@@ -666,6 +712,7 @@ function copyToClipboard(elem) {
     document.body.removeChild(textarea);
   }
 }
+// deprecated, use to copy roomId to clipboard
 function showCopy(elem) {
   if (!elem._originalText) {
     elem._originalText = elem.textContent;
@@ -674,6 +721,7 @@ function showCopy(elem) {
   elem.textContent = "Copier";
 }
 
+// deprecated, use to copy roomId to clipboard
 function restoreText(elem) {
   if (elem._originalText !== undefined) {
     elem.textContent = elem._originalText;
@@ -729,11 +777,11 @@ function hideLastTrick() {
     centerCard =document.getElementById("table-center-card"+i)
     centerCard.style.zIndex = "auto"
   }
-  Array.from(document.querySelectorAll(".blurred")).forEach((el)=>{
-    if (el.classList.contains("card")) {
-      el.classList.remove = "blurred"
-    }
+  Array.from(document.querySelectorAll(".movingCard")).forEach((el)=>{
+    el.style.filter = "blur(0px)"
+    el.classList.remove = "blurred"
   })
+
   Array.from(document.getElementById("play-area").children).forEach((child)=>{
     if (child.className == "table-center"){
       return

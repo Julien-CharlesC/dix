@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Query
 from string import ascii_letters, digits
 idAlphabet = ascii_letters+digits
-alphanum = ascii_letters+digits + "- " + "ùûüÿàâçéèêëïîô"
+alphanum = ascii_letters+digits + "- " + "ùûüÿàâçéèêëïîôÙÛÜŸÀÂÇÉÈÊËÏÎÔ"
 from random import choice, random
 import re, json, asyncio
 import traceback
@@ -96,13 +96,13 @@ class GamesManager():
             return False, "La table n'existe pas."
         room : Room = self.games[roomId]
 
-        for seat,player in enumerate(room.players):
+        for player in room.players:
             # check if the name is not allready taken AND connected 
             if player is not None and player.name == playerName and player.isActive :
                 return False, "Un jouer actif possède déjà ce nom."
             # check if player want to reconnect
             if player is not None and player.name == playerName and not player.isActive :
-                return True, seat
+                return True, player.seat 
 
         # check is there is an available seat
         if not any(player is None for player in room.players):
@@ -159,7 +159,7 @@ class GamesManager():
             self.games.pop(roomId)
 
     async def updatePlayers(self, room : Room , action, msg=""):
-        state = room.state | { "action" : action, "msg":msg} 
+        state : dict = room.state | { "action" : action, "msg":msg} 
         for player in room.humans:
             state.update({
                 "cards" : room.table.ts.hands[player.seat],
@@ -179,7 +179,7 @@ class GamesManager():
         table = room.table
         repetition = 0
         while table.ts.state == "biding" and room.players[table.ts.turn].isBot :
-            await asyncio.sleep(1)
+            await asyncio.sleep(max(1,room.botTime2Act))
             botPlayer = room.players[table.ts.turn]
             bot : RandoBot = botPlayer.ws
             bid = bot.bid()
@@ -197,7 +197,7 @@ class GamesManager():
         #Bot playing
         repetition = 0
         while table.ts.state == "playing" and room.players[table.ts.turn].isBot :
-            await asyncio.sleep(1)
+            await asyncio.sleep(max(1,room.botTime2Act))
             botPlayer = room.players[table.ts.turn]
             bot : RandoBot = botPlayer.ws
             suite, rank = bot.selectCard()
@@ -223,7 +223,7 @@ class GamesManager():
             case "bid":
                 if not re.match(r'^(?:\d{1,3})$', value) :
                     self.updatePlayer(room, "invalid", player, msg="Bad bid token.")
-                    player.ws.close ; return
+                    player.ws.close() ; return
                 bid = int(value)
                 isValid, msg = table.isBidValid(player.seat,bid)
                 if isValid :
@@ -235,12 +235,47 @@ class GamesManager():
             case "update":
                 await self.updatePlayers(room, "update")
 
+            case "changeSeat":
+                if table.ts.state != "waiting" : return
+                if not (m := re.match(r'[0-3]',value)) : 
+                    print("Not a correct seat")
+                    player.ws.close()
+                    return
+
+                askingPlayerNewSeat = int(value) 
+                forcedPlayerNewSeat = player.seat
+
+
+                isSeatTaken = askingPlayerNewSeat in [
+                    p.seat
+                    for p in room.players
+                    if p is not None
+                ]
+                if isSeatTaken : 
+                    print("seat taken")
+                    forcedPlayer = [p for p in room.players if p is not None and p.seat == askingPlayerNewSeat][0]
+                    forcedPlayer.seat = forcedPlayerNewSeat
+
+                if room.host == player.seat : room.host = askingPlayerNewSeat
+                player.seat = askingPlayerNewSeat
+
+                await self.updatePlayers(room, "playerJoined")
+
+            case "botTime2Act":
+                if player.seat != room.host : return
+                if not (m := re.match(r'\d{1,2}',value)) : return
+                sec = int(value)
+                if ( sec > 10 or sec < 1 ): return
+                room.botTime2Act = int(value)
+
             case "newHand":
+                if player.seat != room.host : return
                 table.newHand()
                 room.fillEmptySeatsWithRandoBot()
                 await self.updatePlayers(room, "update")
 
             case "newGame":
+                if player.seat != room.host : return
                 # Only keep active players, dismissing not connected players.
                 room.kickNoneHumans()
                 table.newGame()
@@ -249,7 +284,7 @@ class GamesManager():
             case "playCard":
                 if ( not re.match(r'^[0-3],(?:5|6|7|8|9|1[0-4])$',value)):
                     self.updatePlayer(room, "invalid", player, msg="Bad card token.")
-                    player.ws.close ; return
+                    player.ws.close() ; return
                 suite,rank = map(int,value.split(","))
                 isValid, validationMsg = table.isValidPlayCard(player.seat,[suite,rank])
                 if isValid : 
@@ -260,7 +295,7 @@ class GamesManager():
                     await self.updatePlayer(room, "invalid", player, msg=validationMsg)
             case _:
                 player.ws.send_text(json.dumps({isValid:False , "validationMsg" : "Bad game token"}))
-                player.ws.close ; return
+                player.ws.close() ; return
 
         await self.botAct(room)
 
