@@ -52,7 +52,7 @@ class Table():
         ]
         shuffle(deck)
         for i in range(4):
-            self.ts.hands[i] = sorted(deck[i*10:(i+1)*10])[::-1]
+            self.ts.hands[i] = sorted(deck[i*10:(i+1)*10])
 
     
     def playerHasCard(self, player, card):

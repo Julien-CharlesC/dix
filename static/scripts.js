@@ -6,6 +6,7 @@ let socket
 let data = null
 let audioOn = true
 let trickLocked = false;
+let cardOrderInversed = false
 let inGame = false
 let selectedCard = null ;
 let lastTrickIsShown = false
@@ -15,6 +16,8 @@ let cardPlayedSound = new Audio("/audio/cardPlayed.mp3")
 let shuffleSound = new Audio("/audio/shuffle.mp3")
 
 async function createNewRoom(name, isPrivate) {
+  const storedName = localStorage.getItem("playerName");
+  name =  (name || storedName || "")
   const token = "newRoom:" + name;
   console.log(token)
   const result = await validateConnection(token);
@@ -30,6 +33,8 @@ async function createNewRoom(name, isPrivate) {
 }
 
 async function joinRoom(name, roomId) {
+  const storedName = localStorage.getItem("playerName");
+  name =  (name || storedName || "")
   const token = "joinRoom:" + name + "," + roomId;
   console.log(token)
   const result = await validateConnection(token);
@@ -55,7 +60,6 @@ async function validateConnection(token) {
     return { ok: false, response: null };
   }
 }
-
 
 function connect(token){
 
@@ -83,23 +87,44 @@ function connect(token){
   }
 }
 
-window.addEventListener("load", () => {
-  const roomId = new URLSearchParams(window.location.search).get("roomId");
-  // look if there is a connection token, if not abort.
-  if (!roomId) return
+window.addEventListener("DOMContentLoaded", () => {
+  savedAudioOnStorage = localStorage.getItem("audioOn") 
+  if (savedAudioOnStorage !== null) {
+    savedAudioOn = savedAudioOnStorage === "true"
+    const soundBox = document.getElementById("soundBox");
+    if (soundBox) {
+      soundBox.checked = savedAudioOn ;
+    }
+  }
 
-  const storedName = localStorage.getItem("playerName");
-  if (storedName) {
-    joinRoom(storedName, roomId)
-  } else {
-    openDialog("preRoom")
-    dialog = document.getElementById("preRoom")
-    dialog.addEventListener("submit", () => {
-      const form = dialog.querySelector("form");
-      const nameInput = form.elements["username"];
-      const name = nameInput.value.trim();
-      joinRoom(name, roomId);
-    }, { once: true });
+  cardOrderInversedStorage = localStorage.getItem("cardOrderInversed") === "true" ;
+  if (cardOrderInversedStorage !== null) {
+    cardOrderInversed = cardOrderInversedStorage === "true"
+    const cardBox = document.getElementById("cardOrder");
+    if (cardBox) {
+      cardBox.checked = cardOrderInversed 
+    }
+  }
+});
+
+window.addEventListener("load", () => {
+
+  // Auto Join if the url containt roomId Token
+  const roomId = new URLSearchParams(window.location.search).get("roomId");
+  if (roomId){ 
+    const storedName = localStorage.getItem("playerName");
+    if (storedName) {
+      joinRoom(storedName, roomId)
+    } else {
+      openDialog("preRoom")
+      dialog = document.getElementById("preRoom")
+      dialog.addEventListener("submit", () => {
+        const form = dialog.querySelector("form");
+        const nameInput = form.elements["username"];
+        const name = nameInput.value.trim();
+        joinRoom(name, roomId);
+      }, { once: true });
+    }
   }
 });
 
@@ -490,6 +515,12 @@ function moveCard(card, target, sourceEl=null) {
     card.remove();
   }, { once: true });
 }
+function changeCardOrder(bool){
+  console.log("box",bool)
+  localStorage.setItem("cardOrderInversed", bool);
+  cardOrderInversed=bool
+  renderMyHand(data)
+}
 
 function renderMyHand(data){
   if (["waiting"].includes(data.state)){
@@ -499,7 +530,10 @@ function renderMyHand(data){
   } else{
     player0Hand = document.getElementById("player0-hand")
     player0Hand.innerHTML = ""
-    data.cards.forEach((card) => {
+
+    cards = cardOrderInversed ? data.cards.slice().reverse() : data.cards
+    console.log(cards)
+    cards.forEach((card) => {
       suite = cardSuite[card[0]]
       rank = cardRank[card[1] - 5]
       card = `<div onclick="askToPlayCard(this)" class="card ${suite} ${rank}"></div>`
@@ -574,9 +608,6 @@ window.addEventListener("resize", () => {
   }
   player2 = document.getElementById("player2")
   lockHeight(player2)
-});
-window.addEventListener("load", () => {
-  return
 });
 
 function removeAllSelectedCard(skip=null){
@@ -812,4 +843,9 @@ function toggleTrickLock(event) {
     hideLastTrick();
   }
   trickLocked = !trickLocked
+}
+
+function setAudio(bool){
+  audioOn = bool
+  localStorage.setItem("audioOn", bool);
 }

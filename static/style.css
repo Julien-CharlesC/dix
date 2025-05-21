@@ -612,6 +612,7 @@ transform: rotate(90deg) scale(1.2);
 
 .bid{
 	align-self: center;
+	white-space: nowrap;
 }
 
 #id-container{

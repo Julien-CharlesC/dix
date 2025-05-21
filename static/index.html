@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+	<meta name="viewport" content= "width=device-width, user-scalable=no">
 	<meta charset="UTF-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 	<title>Jeu du dix</title>
@@ -38,9 +39,11 @@
 		<form method="dialog" onsubmit="">
 			<div class="dialog-inputs">
 				<label for="soundBox">Effet audio :</label>
-				<input checked onchange="audioOn = this.checked" id="soundBox" name="sound" type="checkbox">
-				<label for="soundBox">Temps de coup des bots :</label>
+				<input checked onchange="setAudio(this.checked)" id="soundBox" name="sound" type="checkbox">
+				<label for="quantity">Temps de coup des bots :</label>
 				<input onchange="botTime2Act(this.value)" type="number" id="quantity" name="quantity" min="1" max="10">
+				<label for="cardOrder">Ordre des cartes:</label>
+				<input  onchange="changeCardOrder(this.checked)" id="cardOrder" name="cardOrder" type="checkbox">
 			</div>
 			</br>
 			<div>Échanger de place :</div>
