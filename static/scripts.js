@@ -584,11 +584,11 @@ function botTime2Act(sec){
   if (socket && data && data.host == mySeat) socket.send("botTime2Act:"+sec)
 }
 function id2Seat(id){
-  return 
+  return (mySeat + id)%4
 }
 
 function changeSeat(id){
-  if (data || data.state != "waiting") return
+  if (!data || data.state != "waiting") return
   seat = id2Seat(id)
   if ( seat != mySeat && socket && data && inGame ){
     socket.send("changeSeat:"+seat)
