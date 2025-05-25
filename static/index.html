@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-	<meta name="viewport" content= "width=device-width, user-scalable=no">
+	<meta name="viewport" content="width=device-width, user-scalable=no">
 	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<title>Jeu du dix</title>
 	<link rel="stylesheet" href="/static/style.css">
 	<link rel="icon" href="/static/favicon.ico" type="image/x-icon">
-  	<script src="/static/scripts.js"></script> 
+	<script src="/static/scripts.js"></script>
 
 	<!--
 	<link rel="stylesheet" href="style.css">
@@ -15,24 +16,19 @@
   	<script src="scripts.js"></script> 
 	-->
 </head>
+
 <body>
-    <header id="header" >
+	<header id="header">
 		<div id="header-title">
 			<h1>Jeu du dix</h1>
 			<p>Jeu de carte officiel de l'AÉDIROUM</p>
 		</div>
 		<div id="header-buttons">
-			<div class="home-button"
-			onclick="newHand()"
-			>Nouvelle main</div>
-			<div class="home-button"
-			onclick="newGame()"
-			>Nouvelle table</div>
-			<div class="home-button"
-			onclick="quit()"
-			>Quitter</div>
+			<div class="home-button" onclick="newHand()">Nouvelle main</div>
+			<div class="home-button" onclick="newGame()">Nouvelle table</div>
+			<div class="home-button" onclick="quit()">Quitter</div>
 		</div>
-    </header>
+	</header>
 
 	<dialog id="settingsDialog" class="dialog">
 		<h2></h2>
@@ -42,26 +38,28 @@
 				<input checked onchange="setAudio(this.checked)" id="soundBox" name="sound" type="checkbox">
 				<label for="quantity">Temps de coup des bots :</label>
 				<input onchange="botTime2Act(this.value)" type="number" id="quantity" name="quantity" min="1" max="10">
-				<label for="cardOrder">Ordre des cartes:</label>
-				<input  onchange="changeCardOrder(this.checked)" id="cardOrder" name="cardOrder" type="checkbox">
+				<label for="cardOrder">Ordre des cartes [A &rarr; 5] :</label>
+				<input onchange="changeCardOrder(this.checked)" id="cardOrder" name="cardOrder" type="checkbox">
+				<label for="newName">Changer de nom :</label>
+				<input onchange="changeName(this.value)" id="newName" name="newName" type="text">
 			</div>
 			</br>
-			<div>Échanger de place :</div>
+			<div id="changePlaceLabel">Échanger de place :</div>
 			<div id="changePlaceContainer">
-				<div ></div>
+				<div></div>
 				<div onclick="changeSeat(2)" class="placerContainer">
 					<div id="playerPlace2">2</div>
 				</div>
 				<div></div>
-				<div onclick="changeSeat(1)"class="placerContainer">
+				<div onclick="changeSeat(1)" class="placerContainer">
 					<div id="playerPlace1">1</div>
 				</div>
 				<div></div>
-				<div onclick="changeSeat(3)"class="placerContainer">
+				<div onclick="changeSeat(3)" class="placerContainer">
 					<div id="playerPlace3">3</div>
 				</div>
 				<div></div>
-				<div onclick="changeSeat(0)"class="placerContainer">
+				<div onclick="changeSeat(0)" class="placerContainer">
 					<div id="playerPlace0">0</div>
 				</div>
 				<div></div>
@@ -73,6 +71,7 @@
 	</dialog>
 	<dialog id="createNewRoomDialog" class="dialog">
 		<h2>Créer votre table</h2>
+		<div style="text-align: center;">Partage ensuite l'URL !</div>
 		<form method="dialog" onsubmit="createNewRoom(this.username.value, this.private.checked) ">
 			<div class="dialog-inputs">
 				<label for="createName">Nom de joueur:</label>
@@ -96,7 +95,8 @@
 			</div>
 			<menu>
 				<button class="home-button" type="submit">Rejoindre</button>
-				<button class="home-button" type="button" onclick="updateURL(null) ; closeDialog('preRoom')">Annuler</button>
+				<button class="home-button" type="button"
+					onclick="updateURL(null) ; closeDialog('preRoom')">Annuler</button>
 			</menu>
 		</form>
 	</dialog>
@@ -106,14 +106,14 @@
 
 			<div class="dialog-inputs">
 				<label for="joinName">Nom de joueur:</label>
-				<input class="username" id="joinName" name="username"  autocomplete="off">
+				<input class="username" id="joinName" name="username" autocomplete="off">
 			</div>
 			</br>
 			<div id="table-list-container">
 				<label style="padding-left:0.5rem">Table en ligne:</label>
 				<select id="table-list" name="roomId" size="10" required>
-			  	</select>
-		</div>
+				</select>
+			</div>
 			<menu>
 				<button class="home-button" type="submit">Rejoindre</button>
 				<button class="home-button" type="button" onclick="closeDialog('joinRoomDialog')">Annuler</button>
@@ -129,164 +129,174 @@
 	</dialog>
 
 	<main>
-  	<div id="home-container">
+		<div id="home-container">
 
-      <div class="description">
-        <p>Le jeu du dix est le jeu de carte officiel de l'AÉDIROUM.</p>
-      </div>
+			<div class="description">
+				<p>Le jeu du dix est le jeu de carte officiel de l'AÉDIROUM.</p>
+			</div>
 
-      <div class="connection_options">
-        <div class="connection_option home-button"
-          onclick="openDialog('createNewRoomDialog')"
-        >
-          <h3>Créer une nouvelle table</h3>
-        </div>
-        <div class="connection_option home-button"
-          onclick="getRoomsList() ; openDialog('joinRoomDialog')"
-        >
-          <h3>Rejoindre une table</h3>
-        </div>
-      </div>
+			<div class="connection_options">
+				<div class="connection_option home-button" onclick="openDialog('createNewRoomDialog')">
+					<h3>Créer une nouvelle table</h3>
+				</div>
+				<div class="connection_option home-button" onclick="getRoomsList() ; openDialog('joinRoomDialog')">
+					<h3>Rejoindre une table</h3>
+				</div>
+			</div>
 
-	    <div class="regle">
-			<h3 class="home-button"
-				onclick="location.href='https://wiki.aediroum.ca/wiki/Jeu_du_10'" type="button"
-			>
-			
-				Règles du jeu du dix
-			</h3>
+			<div class="regle">
+				<h3 class="home-button" onclick="location.href='https://wiki.aediroum.ca/wiki/Jeu_du_10'" type="button">
+					Règles du jeu du dix
+				</h3>
+			</div>
+
 		</div>
+		<div id="game-container">
+			<div id="top-info-container">
+				<div onclick="openDialog('settingsDialog')" id="gear-container">
+					<div id="gear"></div>
+				</div>
+				<div style="display: none;" id="id-container">
+					<label for="roomId">Id de table</label>
+					<output id="roomIdCopy" class="home-button" onclick="copyToClipboard(this)"
+						onmouseenter="showCopy(this)" onmouseleave="restoreText(this)">
+					</output>
+				</div>
+				<div id="center">
+					<div id="game-infos">
+						<div class="score" onclick="toggleOpen('history-container')">
+							<label for="points-home">Allié</label>
+							<output id="points-home">0 pt</output>
+							<div class="bid" id="bid-home"></div>
+						</div>
 
-  	</div>
-	<div id="game-container">
-		<div id="top-info-container">
-			<div id="gear-container">
-				<div onclick="openDialog('settingsDialog')" id="gear"></div>
+						<div class="trump">
+							<label>Atout</label>
+							<div id="trump" class="card placeholder"></div>
+						</div>
 
+						<div class="score" onclick="toggleOpen('history-container')">
+							<label for="points-away">Rival</label>
+							<output  id="points-away">0 pt</output>
+							<div class="bid" id="bid-away"></div>
+						</div>
+					</div>
+					<div id="historyPosition" onclick="toggleOpen('history-container')" >
+						<table id="history-container">
+							<tbody>
+								<tr>
+									<th ></th>
+									<th >Allié</th>
+									<th >Rival</th>
+									<th ></th>
+								</tr>
+								<tr>
+									<td>70</td>
+									<td>150</td>
+									<td>225</td>
+									<td>30</td>
+								</tr>
+								<tr>
+									<td>40</td>
+									<td>50</td>
+									<td>70</td>
+									<td>60</td>
+								</tr>
+							</tbody>
+						</table>
+					  </div>
+				</div>
+				<div class="last-trick-container">
+					<label>Dernier pli</label>
+					<div id="last-trick" onmouseenter="askShowLastTrick()" onmouseleave="askHideLastTrick()"
+						onclick="toggleTrickLock(event)" class="card face-down">
+					</div>
+				</div>
 			</div>
-			<div style="display: none;" id="id-container" >
-				<label for="roomId">Id de table</label>
-				<output 
-					id="roomIdCopy" 
-					class="home-button" 
-					onclick="copyToClipboard(this)"
-					onmouseenter="showCopy(this)" 
-					onmouseleave="restoreText(this)"
-				>
-				</output>
-			</div>
-			<div id="game-infos">
-				<div class="score">
-					<label for="points-home">Nous</label>
-					<output id="points-home">0 pt</output>
-					<div class="bid" id="bid-home"></div>
-				</div>
+			<div id="play-area">
 
-				<div class="trump">
-					<label>Atout</label>
-					<div id="trump" class="card placeholder"></div>
-				</div>
+				<section class="player current-turn" id="player0">
+					<ol class="card-hand myhand" id="player0-hand">
+						<div onclick="askToPlayCard(this)" class="card face-down"></div>
+						<div onclick="askToPlayCard(this)" class="card face-down"></div>
+						<div onclick="askToPlayCard(this)" class="card face-down"></div>
+						<div onclick="askToPlayCard(this)" class="card face-down"></div>
+						<div onclick="askToPlayCard(this)" class="card face-down"></div>
+						<div onclick="askToPlayCard(this)" class="card face-down"></div>
+						<div onclick="askToPlayCard(this)" class="card face-down"></div>
+						<div onclick="askToPlayCard(this)" class="card face-down"></div>
+						<div onclick="askToPlayCard(this)" class="card face-down"></div>
+						<div onclick="askToPlayCard(this)" class="card face-down"></div>
+					</ol>
+					<h2 id="player0-name">Jérémie</h2>
+				</section>
 
-				<div class="score">
-					<label for="points-away">Vous</label>
-					<output id="points-away">0 pt</output>
-					<div class="bid" id="bid-away"></div>
-				</div>
-			</div>
-			<div class="last-trick-container">
-				<label>Dernière levée</label>
-				<div  
-				id="last-trick"
-				onmouseenter="askShowLastTrick()" 
-				onmouseleave="askHideLastTrick()"
-				onclick="toggleTrickLock(event)"
-				class="card face-down">
-				</div>
+				<section class="player" id="player1">
+
+					<ol class="card-hand sidePlayer other" id="player1-hand">
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+					</ol>
+					<div id="player1-name-container">
+						<h2 id="player1-name">Marie</h2>
+					</div>
+				</section>
+
+				<section class="player" id="player2">
+					<h2 id="player2-name">Fred</h2>
+					<ol class="card-hand other" id="player2-hand">
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+					</ol>
+				</section>
+
+				<section class="player" id="player3">
+					<ol class="card-hand sidePlayer other" id="player3-hand">
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+						<div class="card face-down"></div>
+					</ol>
+					<h2 id="player3-name">Coralie</h2>
+				</section>
+
+				<section class="table-center">
+					<ol>
+						<div class="card placeholder" id="table-center-card0"></div>
+						<div class="card placeholder" id="table-center-card1"></div>
+						<div class="card placeholder" id="table-center-card2"></div>
+						<div class="card placeholder" id="table-center-card3"></div>
+						<div class="bid-button home-button" onclick="lowerBid()">-</div>
+						<div class="bid-button home-button" onclick="augmentBid()">+</div>
+						<div id="passBid" class="pass-button home-button" onclick="passBid()">Passer</div>
+						<div id="confirmBid" class="pass-button home-button" onclick="confirmBid()">Miser</div>
+					</ol>
+				</section>
 			</div>
 		</div>
-		<div id="play-area" >
-
-			<section class="player current-turn" id="player0">
-				<ol class="card-hand myhand" id="player0-hand">
-					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
-					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
-					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
-					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
-					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
-					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
-					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
-					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
-					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
-					<div  onclick="askToPlayCard(this)" class="card face-down"></div>
-				</ol>
-				<h2 id="player0-name">Jérémie</h2>
-			</section>
-
-			<section class="player" id="player1">
-
-				<ol class="card-hand sidePlayer other" id="player1-hand">
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-				</ol>
-				<div id="player1-name-container"> 
-					<h2 id="player1-name">Marie</h2>
-				</div>
-			</section>
-
-			<section class="player" id="player2">
-				<h2 id="player2-name">Fred</h2>
-				<ol class="card-hand other" id="player2-hand">
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-				</ol>
-			</section>
-
-			<section class="player" id="player3">
-				<ol class="card-hand sidePlayer other" id="player3-hand">
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-					<div class="card face-down"></div>
-				</ol>
-				<h2 id="player3-name">Coralie</h2>
-			</section>
-
-			<section class="table-center">
-				<ol>
-					<div class="card placeholder" id="table-center-card0"></div>
-					<div class="card placeholder" id="table-center-card1"></div>
-					<div class="card placeholder" id="table-center-card2"></div>
-					<div class="card placeholder" id="table-center-card3"></div>
-					<div class="bid-button home-button" onclick="lowerBid()">-</div>
-					<div class="bid-button home-button" onclick="augmentBid()">+</div>
-					<div class="pass-button home-button" onclick="passBid()">Passer</div>
-					<div class="pass-button home-button" onclick="confirmBid()">Miser</div>
-				</ol>
-			</section>
-		</div>
-	</div>
- 	</main>   
+	</main>
 </body>
+
 </html>

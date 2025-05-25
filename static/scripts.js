@@ -1,12 +1,12 @@
+let audioOn = true
+let cardOrderInversed = false
+
 let mySeat
 let clearTableTimeout = null
-let next_bid = 50
 let turn
 let socket
 let data = null
-let audioOn = true
 let trickLocked = false;
-let cardOrderInversed = false
 let inGame = false
 let selectedCard = null ;
 let lastTrickIsShown = false
@@ -18,7 +18,7 @@ let shuffleSound = new Audio("/audio/shuffle.mp3")
 async function createNewRoom(name, isPrivate) {
   const storedName = localStorage.getItem("playerName");
   name =  (name || storedName || "")
-  const token = "newRoom:" + name;
+  const token = "newRoom:" + name + "," + isPrivate;
   console.log(token)
   const result = await validateConnection(token);
 
@@ -90,14 +90,14 @@ function connect(token){
 window.addEventListener("DOMContentLoaded", () => {
   savedAudioOnStorage = localStorage.getItem("audioOn") 
   if (savedAudioOnStorage !== null) {
-    savedAudioOn = savedAudioOnStorage === "true"
+    audioOn = savedAudioOnStorage === "true"
     const soundBox = document.getElementById("soundBox");
     if (soundBox) {
-      soundBox.checked = savedAudioOn ;
+      soundBox.checked = audioOn ;
     }
   }
 
-  cardOrderInversedStorage = localStorage.getItem("cardOrderInversed") === "true" ;
+  cardOrderInversedStorage = localStorage.getItem("cardOrderInversed") ;
   if (cardOrderInversedStorage !== null) {
     cardOrderInversed = cardOrderInversedStorage === "true"
     const cardBox = document.getElementById("cardOrder");
@@ -190,10 +190,19 @@ function toggleMainMenu(getOut=null){
   }
 }
 
+function changeName(newName){
+  if (newName.length <= 2 || newName >= 21){
+    openDialog("errorDialog", "Le nom doit être entre 3 et 20 caractères.");
+  }else{
+    socket.send("NameChange:"+newName)
+  }
+}
 
 function updateScriptState(data){
   mySeat = data.mySeat
   turn = data.turn
+  const myName =  data.players[mySeat].name
+  localStorage.setItem("playerName", myName)
 }
 /*
 function refreshCenter(){
@@ -346,7 +355,7 @@ function processServer(data){
   showTurn(data)
   switch (action){
 
-    case "playerJoined":
+    case "playerChange":
       updateNames(data)
       break
 
@@ -367,9 +376,17 @@ function processServer(data){
     case "cardPlayed":
       if (audioOn) cardPlayedSound.play()
       showTrump(data)
-      updatePoints(data)
       playCard(data)
+      if (data.state ==="end"){
+        updatePoints(data)
+        updateHistory(data)
+      }
+      break
 
+    case "newHand":
+      let next_bid = 50
+      if (audioOn){shuffleSound.play()}
+      updatePage(data)
       break
 
     case "update":
@@ -386,6 +403,11 @@ function updateRoomId(data){
 }
 
 function updateTableCenter(center,data){
+  if (data.state != "biding"){
+    document.querySelectorAll('.bid-button, .pass-button').forEach(elem=>{
+      elem.style.display = "none"
+    })
+  } 
   center.forEach((card, seat)=>{
     if (data.state == "biding"){
       bid = data.bids[seat]
@@ -431,9 +453,49 @@ function updatePoints(data){
   vous.innerHTML = otherPoints + " pt"
 }
 
+function updateHistory(data){
+  const table = document.getElementById("history-container")
+  const title = table.firstElementChild.firstElementChild
+  if ( [2,0].includes(mySeat) ) {
+    myIndex = 0 
+    otherIndex = 1 
+  } else {
+    myIndex = 1
+    otherIndex = 0
+  }
+
+  var pointsArr = JSON.parse(JSON.stringify(data.pointsHistory));
+  pointsArr.unshift([0,0])
+
+  var rows = ""
+  for (let i = pointsArr.length - 1 ; i > 0 ; i--){
+    points = pointsArr[i]
+    homePoint = points[myIndex]
+    otherPoint = points[otherIndex]
+    homeDiff = homePoint - pointsArr[i-1][myIndex]
+    otherDiff = otherPoint - pointsArr[i-1][otherIndex]
+    rows += `
+    <tr>
+      <td style="color:${homeDiff>=0 ? 'green':'red'}">${homeDiff>=0 ? '+': ''}${homeDiff}</td>
+      <td>${homePoint}</td>
+      <td>${otherPoint}</td>
+      <td style="color:${otherDiff>=0 ? 'green':'red'}">${otherDiff>=0 ? '+': ''}${otherDiff}</td>
+    </tr>
+    `
+  }
+  rows += `
+  <tr>
+    <td></td>
+    <td>0</td>
+    <td>0</td>
+    <td></td>
+  </tr>
+  `
+  table.innerHTML = title.innerHTML + rows
+}
+
 function updateNames(data){
   data.players.forEach((player, seat)=>{
-    if (player && player.seat == mySeat) localStorage.setItem("playerName", player.name);
     if (!player){
       playerName = "En attente"
       isActive   = true
@@ -532,7 +594,6 @@ function renderMyHand(data){
     player0Hand.innerHTML = ""
 
     cards = cardOrderInversed ? data.cards.slice().reverse() : data.cards
-    console.log(cards)
     cards.forEach((card) => {
       suite = cardSuite[card[0]]
       rank = cardRank[card[1] - 5]
@@ -574,10 +635,13 @@ function updatePage(data){
   showTurn(data)
   player2 = document.getElementById("player2")
   lockHeight(player2)
+  updateHistory(data)
 }
 
 function newGame(){
-  if (data && mySeat == data.host) socket.send("newGame:none")
+  if (data && mySeat == data.host){
+    socket.send("newGame:none")
+  } 
 }
 
 function botTime2Act(sec){
@@ -596,7 +660,6 @@ function changeSeat(id){
 }
 
 function newHand(){
-  if (audioOn && data && data.host == mySeat) shuffleSound.play()
   if (data && mySeat == data.host) socket.send("newHand:none")
 }
 
@@ -848,4 +911,9 @@ function toggleTrickLock(event) {
 function setAudio(bool){
   audioOn = bool
   localStorage.setItem("audioOn", bool);
+}
+
+function toggleOpen(elId){
+  const el = document.getElementById(elId)
+  el.classList.toggle("open")
 }

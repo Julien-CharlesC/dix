@@ -17,6 +17,8 @@ class Table():
         self.ts = TableState()
 
     def endHand(self):
+        self.ts.bidsHistory.append(self.ts.bids.copy())
+        self.ts.pointsHistory.append(self.ts.currentPoints.copy())
         self.ts.dealer = (self.ts.dealer+1)%4
         bids = self.ts.bids
         bestBid = max(bids)
@@ -41,12 +43,28 @@ class Table():
         # Save informations
         points = self.ts.points.copy() 
         dealer = self.ts.dealer
-
+        bidsHistory = deepcopy(self.ts.bidsHistory)
+        pointsHistory = deepcopy(self.ts.pointsHistory)
         # Refresh the table state
         self.newGame()
+
         self.ts.state = "biding"
         self.ts.points = points
         self.ts.dealer = self.ts.turn =  dealer
+
+        self.ts.bidsHistory = bidsHistory  
+        self.ts.pointsHistory = pointsHistory
+
+        #FIXME TODO dev
+        """
+        self.ts.pointsHistory = [
+            [50,75],
+            [125,25],
+            [65,40]
+        ]
+        """
+
+
         deck = [
             [suit,card] for suit in range(4) for card in range(5,15)
         ]

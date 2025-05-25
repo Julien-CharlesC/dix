@@ -15,7 +15,10 @@ class Player(BaseModel):
     }
 
 class Room(BaseModel):
-    isPrivate: bool = Field(False)
+    isPrivate: bool = Field(
+        False, 
+        description="Tell if the game is private, hidding it from the joining page.",
+    )
     roomId :str 
     table : Table = Field(default_factory = Table)
     roomName : str
@@ -30,7 +33,7 @@ class Room(BaseModel):
         "arbitrary_types_allowed": True
     }
 
-    def kickNoneHumans(self):
+    def kickNotActiveHumans(self):
         self.players = [
             player 
             if player is not None and player.isActive and not player.isBot else None
@@ -53,7 +56,7 @@ class Room(BaseModel):
         ]
 
     @property
-    def humans(self):
+    def activeHumans(self):
         return [
             player 
             for player in self.players 

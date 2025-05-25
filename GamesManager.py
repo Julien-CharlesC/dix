@@ -36,7 +36,7 @@ class GamesManager():
             {
                 "roomId":room.roomId,
                 "name":room.roomName, 
-                "numHumans": len(room.humans),
+                "numHumans": len([p for p in room.players if p is not None]),
                 "numBots": room.botsCardinality,
                 "isStarted":room.table.ts.state != "waiting"
             }
@@ -73,10 +73,11 @@ class GamesManager():
         return False 
     
 
-    def createRoom(self,roomId,playerName):
+    def createRoom(self,roomId,playerName, isPrivate):
         room = Room(
             roomId = roomId,
             roomName = playerName,
+            isPrivate = isPrivate,
         ) 
         self.games[roomId] = room
         return room
@@ -112,14 +113,19 @@ class GamesManager():
 
     # Suppose that all verification is done and that the connection
     # is secure and will succed to the room
-    async def connect(self,ws:WebSocket,roomId,playerName,indexSeat, newRoom=False):
+    async def connect(self,ws:WebSocket,roomId,playerName,indexSeat):
         await ws.accept()
         self.total_connection += 1
 
-        if newRoom : self.createRoom(roomId, playerName)
         room : Room = self.games.get(roomId)
         if playerName == "" : 
             playerName = self.generateRandomName(room)
+            room.roomName = playerName
+        elif re.match(r'[Mm]erci [Rr]obin',playerName):
+            playerName = "Merci Samuel"
+            room.roomName = playerName
+        elif re.match(r'[Mm]erci [Ss]amuel',playerName):
+            playerName = "Merci Robin"
             room.roomName = playerName
 
         print(f"{self.total_connection=}")
@@ -131,9 +137,7 @@ class GamesManager():
             seat = indexSeat
         )
         room.players[indexSeat] = player
-        # TODO action is newPlayer arrived
         await self.playerAct("connectionAccepted","",room,player)
-        print(room)
 
         try :
             while True:
@@ -146,13 +150,13 @@ class GamesManager():
             # Del the room if no player in it. But let few seconds for refresh.
             await asyncio.sleep(1)
             if player.isActive : return
-            if not any(player.isActive for player in room.humans):
+            if not any(player.isActive for player in room.activeHumans):
                 self.games.pop(roomId)
             else :
-                await self.playerAct("update","",room,player)
+                await self.updatePlayers(room, "playerChange")
         except Exception as e: 
             print(traceback.format_exc())
-            for player in room.humans:
+            for player in room.activeHumans:
                 self.total_connection -= 1
                 await player.ws.close()
             print(e)
@@ -160,7 +164,7 @@ class GamesManager():
 
     async def updatePlayers(self, room : Room , action, msg=""):
         state : dict = room.state | { "action" : action, "msg":msg} 
-        for player in room.humans:
+        for player in room.activeHumans:
             state.update({
                 "cards" : room.table.ts.hands[player.seat],
                 "mySeat": player.seat, 
@@ -218,7 +222,20 @@ class GamesManager():
 
             case "connectionAccepted":
                 await self.updatePlayer(room, "update", player, msg="")
-                await self.updatePlayers(room, "playerJoined")
+                await self.updatePlayers(room, "playerChange")
+
+            case "NameChange":
+                newName = value
+                if (len(newName) >= 21 or len(newName) <= 2) : return
+                player.name = newName
+                if newName in [
+                    p.name
+                    for p in room.players
+                    if p is not None
+                ]: return # If name allready taken, do nothing as we don't want duplicate.
+                if (player.seat == room.host):
+                    room.roomName = newName
+                await self.updatePlayers(room, "playerChange")
 
             case "bid":
                 if not re.match(r'^(?:\d{1,3})$', value) :
@@ -272,12 +289,12 @@ class GamesManager():
                 if player.seat != room.host : return
                 table.newHand()
                 room.fillEmptySeatsWithRandoBot()
-                await self.updatePlayers(room, "update")
+                await self.updatePlayers(room, "newHand")
 
             case "newGame":
                 if player.seat != room.host : return
                 # Only keep active players, dismissing not connected players.
-                room.kickNoneHumans()
+                room.kickNotActiveHumans()
                 table.newGame()
                 await self.updatePlayers(room, "update")
 

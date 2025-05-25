@@ -61,12 +61,19 @@ def _validateConnectionToken(token:str):
 
     match action :
         case "newRoom":
-            if sum([car=="," for car in value]) >= 1: 
+            if sum([car=="," for car in value]) >= 2: 
                 raise HTTPException( status_code=400, detail="Bad connection token.")
-            playerName = value
+            playerName, isPrivate = value.split(",")
             if playerName == "null" or len(playerName) >=21 :
                 raise HTTPException( status_code=400, detail="Le nom doit avoir maximum 20 caractères.")
-            return action,playerName
+            if    (m:= re.match(r'(?:[Tt]rue)',isPrivate)):
+                isPrivate = True
+            elif  (m:= re.match(r'(?:[fF]alse)',isPrivate)):
+                isPrivate = False
+            else :
+                raise HTTPException( status_code=400, detail="Bad connection token.")
+
+            return action, (playerName,isPrivate)
         case "joinRoom":
             nbrComma = sum([car=="," for car in value]) 
             if 0 == nbrComma or nbrComma >= 2: 
@@ -94,8 +101,10 @@ async def websocket(
     match action :
         case "newRoom":
             roomId = gm.generateRoomId()
-            playerName = value
-            await gm.connect(ws,roomId,playerName, 0, newRoom=True)
+            playerName, isPrivate = value
+
+            gm.createRoom(roomId, playerName, isPrivate)
+            await gm.connect(ws,roomId,playerName, 0)
         case "joinRoom":
             playerName,roomId,seatIndex = value
             await gm.connect(ws,roomId,playerName, seatIndex)

@@ -20,9 +20,17 @@ class TableState(BaseModel):
         default_factory=lambda:[None]*4,
         description = "The bids of the players, indexed with their seats."
     )
+    bidsHistory : List[List[int]] = Field(
+        default_factory=lambda:[],
+        description = "The history of each round final bids."
+    )
     points : List[int] = Field(
         default_factory=lambda:[0,0],
         description = "The points overall points the two teams over all finished hands."
+    )
+    pointsHistory : List[List[int]] = Field(
+        default_factory=lambda:[],
+        description = "The history of each round points."
     )
     hands : List[List[List[int]]] = Field(
         default_factory=lambda:[[] for _ in range(4)],
