@@ -44,7 +44,9 @@ body {
 	font-family: "Segoe UI", sans-serif;
 	background-color: #1e1e2f;
 	color: #fff;
-	min-height: 100vh;
+	height: 100%;
+	overflow: hidden;
+	touch-action: none ;
 }
 #table-list-container *{
 	display: block;
