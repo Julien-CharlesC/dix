@@ -27,15 +27,15 @@ class Table():
             self.ts.currentPoints[bidWinner] = -bestBid
             self.ts.points[bidWinner] -= bestBid 
         otherTeam = (bidWinner+1)%2
-        if (
-            (self.ts.points[otherTeam] >= 400 and self.ts.hasBided[otherTeam]) or
-            self.ts.gameType == "inf"
-  
+        if not (
+            self.ts.gameType == "500" and
+            not self.ts.hasBided[otherTeam] and
+            self.ts.points[otherTeam] >= 400 
         ):
             self.ts.points[otherTeam] += self.ts.currentPoints[otherTeam]
         self.ts.state = "end"
         self.ts.bidsHistory.append(self.ts.bids.copy())
-        self.ts.pointsHistory.append(self.ts.currentPoints.copy())
+        self.ts.pointsHistory.append(self.ts.points.copy())
 
     def askedSuite(self):
         count = self.count_played_cards()
@@ -57,7 +57,7 @@ class Table():
         self.ts.lastCenter = [None]*4
         self.ts.trump = None
 
-        #FIXME TODO dev
+        # dev
         """
         self.ts.pointsHistory = [
             [50,75],

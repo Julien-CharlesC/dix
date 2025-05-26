@@ -496,8 +496,8 @@ function updateHistory(data){
 
   // This adds the just acquired points as an animation.
   if (data.state == "end" && data.pointsHistory.length>=1){
-    const homeRect  = document.getElementById("bid-home").getBoundingClientRect();
-    const otherRect = document.getElementById("bid-away").getBoundingClientRect();
+    const homeRect = getRect("bid-home")
+    const otherRect = getRect("bid-away")
 
     const diffDiv= (diff, rect) =>{
       const el = document.createElement("div")
@@ -521,8 +521,8 @@ function updateHistory(data){
     pointsDiff = pointsNow.map(function(item,index){
       return item - pointsPrevious[index]
     })
-    homeDiff = diffDiv(pointsDiff[myIndex], homeRect)
-    otherDiff = diffDiv(pointsDiff[otherIndex], otherRect)
+    const homeDiff = diffDiv(pointsDiff[myIndex], homeRect)
+    const otherDiff = diffDiv(pointsDiff[otherIndex], otherRect)
     document.body.appendChild(homeDiff);
     document.body.appendChild(otherDiff);
     setTimeout(()=>{
@@ -533,6 +533,17 @@ function updateHistory(data){
         otherDiff.remove()
       },3000)
     },7000)
+  }
+}
+function getRect(id){ 
+  const rect = document.getElementById(id).getBoundingClientRect();
+  return {
+    top: rect.top,
+    left: rect.left,
+    bottom: rect.bottom,
+    right: rect.right,
+    width: rect.width,
+    height: rect.height
   }
 }
 
