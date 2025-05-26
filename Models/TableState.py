@@ -24,6 +24,10 @@ class TableState(BaseModel):
         default_factory=lambda:[None]*4,
         description = "The bids of the players, indexed with their seats."
     )
+    hasBided : List[bool] = Field(
+        default_factory = lambda : [False,False],
+        description= "Is used for the gameType 500 points, where one must bid to gain point over 400 points."
+    )
     bidsHistory : List[List[int]] = Field(
         default_factory=lambda:[],
         description = "The history of each round final bids."

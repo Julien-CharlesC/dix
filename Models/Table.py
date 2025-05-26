@@ -27,7 +27,12 @@ class Table():
             self.ts.currentPoints[bidWinner] = -bestBid
             self.ts.points[bidWinner] -= bestBid 
         otherTeam = (bidWinner+1)%2
-        self.ts.points[otherTeam] += self.ts.currentPoints[otherTeam]
+        if (
+            (self.ts.points[otherTeam] >= 400 and self.ts.hasBided[otherTeam]) or
+            self.ts.gameType == "inf"
+  
+        ):
+            self.ts.points[otherTeam] += self.ts.currentPoints[otherTeam]
         self.ts.state = "end"
         self.ts.bidsHistory.append(self.ts.bids.copy())
         self.ts.pointsHistory.append(self.ts.currentPoints.copy())
@@ -41,6 +46,9 @@ class Table():
         return sum(1 for card in self.ts.center if card is not None)
 
     def newHand(self):
+
+        if self.ts.gameType=="500" and any(p>=500 for p in self.ts.points):
+            return
 
         self.ts.state = "biding"
         self.ts.turn =  self.ts.dealer
@@ -184,6 +192,7 @@ class Table():
     def bid(self, seat, bid):
         bids = self.ts.bids
         bids[seat] = bid 
+        if bid != 0 : self.ts.hasBided[seat%2] = True
         if bid == 100:
             self.ts.bids = [0]*4
             self.ts.bids[seat] = 100
@@ -199,11 +208,11 @@ class Table():
             self.ts.turn = (self.ts.turn+1)%4
             i += 1
             if i > 10 : raise Exception("Infinite Loop")
-        print(self.ts.turn)
 
         # No bids, forced to bid 50.
         if self.isForcedToBid():
             bids[self.ts.turn] = 50
+            self.ts.hasBided[self.ts.turn%2] = True
             self.ts.state = "playing"
             return
         # All other players have passed, player win the bids.
