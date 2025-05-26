@@ -12,6 +12,10 @@ class TableState(BaseModel):
     trump : int = Field(
         None,
     )
+    gameType : int = Field(
+        "inf",
+        description="Determine the rules of terminating the game or not."
+    )
     center : List[Optional[List[int]]] = Field(
         default_factory = lambda :[None]*4, 
         description ="The card in the center of the table. Indexed by their respective player."

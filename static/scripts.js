@@ -15,10 +15,10 @@ const cardSuite = ["spades","hearts","clubs","diamonds"]
 let cardPlayedSound = new Audio("/audio/cardPlayed.mp3")
 let shuffleSound = new Audio("/audio/shuffle.mp3")
 
-async function createNewRoom(name, isPrivate) {
+async function createNewRoom(name, isPrivate, gameType) {
   const storedName = localStorage.getItem("playerName");
   name =  (name || storedName || "")
-  const token = "newRoom:" + name + "," + isPrivate;
+  const token = "newRoom:" + name + "," + isPrivate + "," + gameType;
   console.log(token)
   const result = await validateConnection(token);
 
@@ -585,8 +585,10 @@ function moveCard(card, target, sourceEl=null) {
   } 
 
 
+  const movingCard = card.cloneNode(true)
+  document.body.appendChild(movingCard);
+  movingCard.classList.add("movingCard")
   const inHandCard  = card
-  const movingCard = card.cloneNode()
 
   // This is for reducing the hand size smoothly
   inHandCard.style.visibility = "hidden"
@@ -595,10 +597,14 @@ function moveCard(card, target, sourceEl=null) {
   if (inHandCard.classList.contains("1") || inHandCard.classList.contains("3") ){
     inHandCard.style.marginBottom = "-4.885rem" // the gap between cards
     inHandCard.style.marginTop = "-0.885rem" // the gap between cards
+    inHandCard.style.paddingLeft = "0px"
+    inHandCard.style.paddingRight = "0px"
   // Horizontal 
   }else if(inHandCard.classList.contains("2")){
     inHandCard.style.marginLeft = "-2.885rem" // the gap between cards
     inHandCard.style.marginRight = "-0.885rem" // the gap between cards
+    inHandCard.style.paddingTop = "0px"
+    inHandCard.style.paddingBottom= "0px"
   // My Hand
   }else{
     inHandCard.style.padding = "0px"
@@ -616,9 +622,6 @@ function moveCard(card, target, sourceEl=null) {
   movingCard.style.left = cardRect.left + "px";
   movingCard.style.top = cardRect.top  + "px";
 
-  // Move to body to avoid layout conflicts
-  document.body.appendChild(movingCard);
-  movingCard.classList.add("movingCard")
 
   // Force layout reflow
   movingCard.offsetWidth;

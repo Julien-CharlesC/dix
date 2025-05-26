@@ -17,8 +17,6 @@ class Table():
         self.ts = TableState()
 
     def endHand(self):
-        self.ts.bidsHistory.append(self.ts.bids.copy())
-        self.ts.pointsHistory.append(self.ts.currentPoints.copy())
         self.ts.dealer = (self.ts.dealer+1)%4
         bids = self.ts.bids
         bestBid = max(bids)
@@ -26,10 +24,13 @@ class Table():
         if self.ts.currentPoints[bidWinner] >= bestBid :
             self.ts.points[bidWinner] += self.ts.currentPoints[bidWinner]
         else :
+            self.ts.currentPoints[bidWinner] = -bestBid
             self.ts.points[bidWinner] -= bestBid 
         otherTeam = (bidWinner+1)%2
         self.ts.points[otherTeam] += self.ts.currentPoints[otherTeam]
         self.ts.state = "end"
+        self.ts.bidsHistory.append(self.ts.bids.copy())
+        self.ts.pointsHistory.append(self.ts.currentPoints.copy())
 
     def askedSuite(self):
         count = self.count_played_cards()
@@ -40,20 +41,13 @@ class Table():
         return sum(1 for card in self.ts.center if card is not None)
 
     def newHand(self):
-        # Save informations
-        points = self.ts.points.copy() 
-        dealer = self.ts.dealer
-        bidsHistory = deepcopy(self.ts.bidsHistory)
-        pointsHistory = deepcopy(self.ts.pointsHistory)
-        # Refresh the table state
-        self.newGame()
 
-        self.ts.state = "playing"
-        self.ts.points = points
-        self.ts.dealer = self.ts.turn =  dealer
-
-        self.ts.bidsHistory = bidsHistory  
-        self.ts.pointsHistory = pointsHistory
+        self.ts.state = "biding"
+        self.ts.turn =  self.ts.dealer
+        self.ts.currentPoints = [0,0]
+        self.ts.bids = [None]*4
+        self.ts.lastCenter = [None]*4
+        self.ts.trump = None
 
         #FIXME TODO dev
         """

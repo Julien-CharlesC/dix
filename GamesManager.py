@@ -73,12 +73,13 @@ class GamesManager():
         return False 
     
 
-    def createRoom(self,roomId,playerName, isPrivate):
+    def createRoom(self,roomId,playerName, isPrivate, gameType):
         room = Room(
             roomId = roomId,
             roomName = playerName,
             isPrivate = isPrivate,
         ) 
+        room.table.ts.gameType = gameType
         self.games[roomId] = room
         return room
 

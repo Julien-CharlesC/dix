@@ -72,10 +72,21 @@
 	<dialog id="createNewRoomDialog" class="dialog">
 		<h2>Créer votre table</h2>
 		<div style="text-align: center;">Partage ensuite l'URL !</div>
-		<form method="dialog" onsubmit="createNewRoom(this.username.value, this.private.checked) ">
+		<form method="dialog" onsubmit="createNewRoom(this.username.value, this.private.checked, this.gameType.value) ">
 			<div class="dialog-inputs">
 				<label for="createName">Nom de joueur:</label>
 				<input id="createName" name="username" autocomplete="off">
+				<span>Type de partie:</span>
+				<div id="gameType-container">
+					<label>
+						<input checked type="radio" name="gameType" value="500">
+						Classique 500 points
+					</label>
+					<label>
+						<input  type="radio" name="gameType" value="inf">
+						Sans fin
+					</label>
+				</div>
 				<label for="privateBox">Table privée:</label>
 				<input id="privateBox" name="private" type="checkbox">
 			</div>

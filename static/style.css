@@ -454,7 +454,6 @@ header h1 {
 	display: grid;
 	grid-template-columns: repeat(3, 18rem) ;
 	grid-template-rows: auto repeat(2, 18rem);
-	width: clamp(200px, 100%, 750px);
 	gap: 2rem;
 }
 
@@ -506,6 +505,14 @@ header h1 {
 	height:0 ;
 	width:0;
 	margin-bottom : -4rem ; 
+}
+#gameType-container{
+	display: flex; 
+	flex-direction: column
+}
+
+#gameType-container label input {
+	width:max-content
 }
   
 .sidePlayer .card:hover {
