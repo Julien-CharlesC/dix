@@ -44,7 +44,7 @@ body {
 	font-family: "Segoe UI", sans-serif;
 	background-color: #1e1e2f;
 	color: #fff;
-	height: 100%;
+	height: 100vh;
 	overflow: hidden;
 	touch-action: none ;
 }
@@ -228,6 +228,7 @@ header h1 {
 #header-buttons {
 	display: none ;
 	gap: 2rem;
+	user-select: none;
 }
 
 #privateBox, #soundBox, #cardOrder {
@@ -756,6 +757,10 @@ transform: rotate(90deg) scale(1.2);
 }
 
 @media screen and (max-width: 750px) {
+	*{
+		user-select: none;
+	}
+
 	#game-container {
 		padding-top:0rem;
 	}
