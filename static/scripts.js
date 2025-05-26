@@ -308,7 +308,7 @@ function playCard(data){
     id = seat2Id(playerSeat)
     playerCards = document.getElementById("player"+id+"-hand").children;
     randomCard = playerCards[Math.floor(Math.random() * playerCards.length)];
-    randomCard.className = `card ${suite} ${rank}`
+    randomCard.className = `card ${suite} ${rank} ${id}`
     target = document.getElementById("table-center-card"+id)
     if (window.innerWidth < 750){ 
       sourceEl = document.getElementById("player"+id+"-name")
@@ -454,6 +454,7 @@ function updatePoints(data){
 }
 
 function updateHistory(data){
+  // First we update the history
   const table = document.getElementById("history-container")
   const title = table.firstElementChild.firstElementChild
   if ( [2,0].includes(mySeat) ) {
@@ -492,6 +493,47 @@ function updateHistory(data){
   </tr>
   `
   table.innerHTML = title.innerHTML + rows
+
+  // This adds the just acquired points as an animation.
+  if (data.state == "end" && data.pointsHistory.length>=1){
+    const homeRect  = document.getElementById("bid-home").getBoundingClientRect();
+    const otherRect = document.getElementById("bid-away").getBoundingClientRect();
+
+    const diffDiv= (diff, rect) =>{
+      const el = document.createElement("div")
+      el.style.color = `${diff>=0 ? 'green':'red'}`
+      el.style.position = "absolute"
+      el.innerHTML = `${diff>=0 ? '+': ''}${diff}`
+      el.className = "points-popup"
+      el.style.zIndex = 2
+      el.style.left = rect.left + "px";
+      el.style.top = rect.bottom  + "px";
+      el.style.width = rect.width + "px";
+      el.style.height = rect.height + "px";
+      el.style.fontSize = "2rem"
+      el.style.fontWeight = "bold"
+      el.style.textAlign = "center"
+      return el
+    }
+    pointsNow = pointsArr[pointsArr.length-1]
+    pointsPrevious = pointsArr[pointsArr.length-2]
+
+    pointsDiff = pointsNow.map(function(item,index){
+      return item - pointsPrevious[index]
+    })
+    homeDiff = diffDiv(pointsDiff[myIndex], homeRect)
+    otherDiff = diffDiv(pointsDiff[otherIndex], otherRect)
+    document.body.appendChild(homeDiff);
+    document.body.appendChild(otherDiff);
+    setTimeout(()=>{
+      homeDiff.classList.add("fading-out")
+      otherDiff.classList.add("fading-out")
+      setTimeout(()=>{
+        homeDiff.remove()
+        otherDiff.remove()
+      },3000)
+    },7000)
+  }
 }
 
 function updateNames(data){
@@ -542,31 +584,57 @@ function moveCard(card, target, sourceEl=null) {
     card.classList.add("blurred")
   } 
 
-  // Set up absolute positioning
-  card.style.position = "absolute";
-  card.style.zIndex = 10;
-  card.style.left = cardRect.left + "px";
-  card.style.top = cardRect.top  + "px";
+
+  const inHandCard  = card
+  const movingCard = card.cloneNode()
+
+  // This is for reducing the hand size smoothly
+  inHandCard.style.visibility = "hidden"
+  inHandCard.style.transition = "padding 1s, border 1s, margin 1s" 
+  // vertical
+  if (inHandCard.classList.contains("1") || inHandCard.classList.contains("3") ){
+    inHandCard.style.marginBottom = "-4.885rem" // the gap between cards
+    inHandCard.style.marginTop = "-0.885rem" // the gap between cards
+  // Horizontal 
+  }else if(inHandCard.classList.contains("2")){
+    inHandCard.style.marginLeft = "-2.885rem" // the gap between cards
+    inHandCard.style.marginRight = "-0.885rem" // the gap between cards
+  // My Hand
+  }else{
+    inHandCard.style.padding = "0px"
+    inHandCard.style.border = "0px"
+    inHandCard.style.margin = "0 -0.35rem" // the gap between cards
+  }
+  setTimeout(()=>{
+    inHandCard.remove()
+  },2000)
+
+
+  // Set up absolute positioning, the moving-card
+  movingCard.style.position = "absolute";
+  movingCard.style.zIndex = 10;
+  movingCard.style.left = cardRect.left + "px";
+  movingCard.style.top = cardRect.top  + "px";
 
   // Move to body to avoid layout conflicts
-  document.body.appendChild(card);
-  card.classList.add("movingCard")
+  document.body.appendChild(movingCard);
+  movingCard.classList.add("movingCard")
 
   // Force layout reflow
-  card.offsetWidth;
+  movingCard.offsetWidth;
 
   // Start transition
-  card.style.transition = "left 0.8s ease, top 0.8s ease, filter 0s";
-  card.style.left = targetRect.left + "px";
-  card.style.top = targetRect.top + "px";
+  movingCard.style.transition = "left 0.8s ease, top 0.8s ease, filter 0s";
+  movingCard.style.left = targetRect.left + "px";
+  movingCard.style.top = targetRect.top + "px";
 
-  // Remove card from DOM after transition
-  card.addEventListener("transitionend", () => {
-    cardInt = card2Int(card)
-    suite = cardInt[0]
-    rank  = cardInt[1]
+  // Remove movingCard from DOM after transition
+  movingCard.addEventListener("transitionend", () => {
+    movingCardInt = card2Int(movingCard)
+    suite = movingCardInt[0]
+    rank  = movingCardInt[1]
     if (!lastTrickIsShown &&
-    // At the end of the transition, if the card is not from the actual trick,
+    // At the end of the transition, if the movingCard is not from the actual trick,
     // we do not show it at the center.
       !(
       data.lastCenter.filter(x=>x!==null).some(x=>x[0]==suite && x[1]==rank)
@@ -574,7 +642,7 @@ function moveCard(card, target, sourceEl=null) {
       data.center.some(x=>x!==null)
       )
     ){ target.className = `card ${cardSuite[suite]} ${cardRank[rank-5]}`}
-    card.remove();
+    movingCard.remove();
   }, { once: true });
 }
 function changeCardOrder(bool){

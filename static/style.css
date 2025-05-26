@@ -175,7 +175,7 @@ td,th{
 	position: relative;
 	max-height: 0;
 	transition: all 0.5s ease;
-	margin-top: 1rem;
+	margin-top: 2rem;
 }
 
 #center{
@@ -505,7 +505,7 @@ header h1 {
 	transform: rotate(90deg);
 	height:0 ;
 	width:0;
-	margin-bottom : -4rem !important; 
+	margin-bottom : -4rem ; 
 }
   
 .sidePlayer .card:hover {
@@ -732,11 +732,19 @@ transform: rotate(90deg) scale(1.2);
 }
   
 .shake-error {
-animation: shake 0.5s ease;
-box-shadow: 0 0 10px 4px red!important; /* glowing border */
-border: 2px solid red;
+	animation: shake 0.5s ease;
+	box-shadow: 0 0 10px 4px red!important; /* glowing border */
+	border: 2px solid red;
 }
 
+.fading-out{
+	animation: fadeout 3s forwards;
+}
+
+@keyframes fadeout{
+	0%  { opacity:1 ; }
+	100%  { opacity:0 ; }
+}
 
 @media screen and (max-width: 750px) {
 	#game-container {
