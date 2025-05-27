@@ -36,7 +36,7 @@ class GamesManager():
             {
                 "roomId":room.roomId,
                 "name":room.roomName, 
-                "numHumans": len([p for p in room.players if p is not None]),
+                "numHumans": len(room.humans),
                 "numBots": room.botsCardinality,
                 "isStarted":room.table.ts.state != "waiting"
             }

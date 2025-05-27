@@ -278,7 +278,7 @@ function updateBid(data){
     }
   })
   nousBid = Math.max(data.bids[mySeat], data.bids[(mySeat+2)%4])
-  vousBid = Math.max(data.bids[mySeat+1], data.bids[(mySeat+3)%4])
+  vousBid = Math.max(data.bids[(mySeat+1)%4], data.bids[(mySeat+3)%4])
   if (nousBid == 0) nousBid = "&empty;"
   if (vousBid == 0) vousBid = "&empty;"
 

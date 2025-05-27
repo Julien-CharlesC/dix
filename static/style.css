@@ -262,6 +262,7 @@ header h1 {
 	margin: 0.5rem 0rem;
 }
 .placerContainer{
+  text-align: center;
   width: min-content;
   background-color: #282848;
   padding:0.5rem;

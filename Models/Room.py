@@ -62,6 +62,14 @@ class Room(BaseModel):
             for player in self.players 
             if player is not None and player.isActive and not player.isBot
         ]
+
+    @property
+    def humans(self):
+        return [
+            player 
+            for player in self.players 
+            if player is not None and not player.isBot
+        ]
         
     @property
     def botsCardinality(self):

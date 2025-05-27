@@ -51,9 +51,9 @@ def _validateConnectionToken(token:str):
     # Sanitize and process token
     token = token.strip()
     if (
-        any([(car not in alphanum+":,") for car in token])
+        any([(car not in alphanum+":, ") for car in token])
         or
-        not ( m:= re.match(r'^(newRoom|joinRoom):((?:\w*(?: \w*)*)(?:,\s*\w*(?: \w*)*)*)$',token)) 
+        not ( m:= re.match(r'^(newRoom|joinRoom):((?:\w*\s*(?:\s*\w*)*)(?:,\s*\w*(?:\s*\w*)*)*)$',token)) 
     ):
         print(token)
         raise HTTPException( status_code=400, detail="Bad connection token.")
@@ -95,7 +95,7 @@ def _validateConnectionToken(token:str):
 async def websocket(
     ws : WebSocket,
     token:str= Query(
-        ..., description="The action:value token.", max_length=30
+        ..., description="The action:value token.", max_length=50
     )
 ):
     # Validate and return the separated token. Raises HTTP error otherwise.
