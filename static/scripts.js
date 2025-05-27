@@ -191,10 +191,11 @@ function toggleMainMenu(getOut=null){
 }
 
 function changeName(newName){
+  newName = newName.trim()
   if (newName.length <= 2 || newName >= 21){
     openDialog("errorDialog", "Le nom doit être entre 3 et 20 caractères.");
   }else{
-    socket.send("NameChange:"+newName)
+    socket.send("nameChange:"+newName)
   }
 }
 

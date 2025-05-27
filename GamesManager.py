@@ -85,10 +85,11 @@ class GamesManager():
 
     def processGameToken(self,token):
         if ( 
-            len(token) >= 20 or 
-            any([(car not in alphanum+":,") for car in token]) or
-            not ( m:= re.match(r'^(\w+):((?:\w+(?: \w+)*)(?:,\s*\w+(?: \w+)*)*)$',token))
-        ) : raise HTTPException( status_code=400, detail="Bad game token.")
+            len(token) >= 40 or 
+            any([(car not in alphanum+":, ") for car in token]) or
+            not ( m:= re.match(r'^(\w+):((?:\w*\s*(?:\s*\w*)*)(?:,\s*\w*(?: \w*)*)*)$',token))
+        ) : 
+            raise HTTPException( status_code=400, detail="Bad game token.")
 
         return m[1], m[2]
 
@@ -225,15 +226,15 @@ class GamesManager():
                 await self.updatePlayer(room, "update", player, msg="")
                 await self.updatePlayers(room, "playerChange")
 
-            case "NameChange":
+            case "nameChange":
                 newName = value
                 if (len(newName) >= 21 or len(newName) <= 2) : return
-                player.name = newName
                 if newName in [
                     p.name
                     for p in room.players
                     if p is not None
                 ]: return # If name allready taken, do nothing as we don't want duplicate.
+                player.name = newName
                 if (player.seat == room.host):
                     room.roomName = newName
                 await self.updatePlayers(room, "playerChange")
