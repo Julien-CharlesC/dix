@@ -25,37 +25,42 @@
 
 	<dialog id="settingsDialog" class="dialog">
 		<h2></h2>
-		<form method="dialog" onsubmit="">
+		<form  method="dialog" onsubmit="">
 			<div class="dialog-inputs">
 				<label for="soundBox">Effet audio :</label>
 				<input checked onchange="setAudio(this.checked)" id="soundBox" name="sound" type="checkbox">
+				<!--
 				<label for="quantity">Temps de coup des bots :</label>
 				<input onchange="botTime2Act(this.value)" type="number" id="quantity" name="quantity" min="1" max="10">
+				-->
 				<label for="cardOrder">Ordre des cartes [A &rarr; 5] :</label>
 				<input onchange="changeCardOrder(this.checked)" id="cardOrder" name="cardOrder" type="checkbox">
 				<label for="newName">Changer de nom :</label>
 				<input onchange="changeName(this.value)" id="newName" name="newName" type="text">
 			</div>
 			</br>
-			<div id="changePlaceLabel">Échanger de place :</div>
-			<div id="changePlaceContainer">
-				<div></div>
-				<div onclick="changeSeat(2)" class="placerContainer">
-					<div id="playerPlace2">2</div>
+
+			<div class="pregameSettings">
+				<div  id="changePlaceLabel">Échanger de place :</div>
+				<div  id="changePlaceContainer">
+					<div></div>
+					<div onclick="changeSeat(2)" class="placerContainer">
+						<div id="playerPlace2">2</div>
+					</div>
+					<div></div>
+					<div onclick="changeSeat(1)" class="placerContainer">
+						<div id="playerPlace1">1</div>
+					</div>
+					<div></div>
+					<div onclick="changeSeat(3)" class="placerContainer">
+						<div id="playerPlace3">3</div>
+					</div>
+					<div></div>
+					<div onclick="changeSeat(0)" class="placerContainer">
+						<div id="playerPlace0">0</div>
+					</div>
+					<div></div>
 				</div>
-				<div></div>
-				<div onclick="changeSeat(1)" class="placerContainer">
-					<div id="playerPlace1">1</div>
-				</div>
-				<div></div>
-				<div onclick="changeSeat(3)" class="placerContainer">
-					<div id="playerPlace3">3</div>
-				</div>
-				<div></div>
-				<div onclick="changeSeat(0)" class="placerContainer">
-					<div id="playerPlace0">0</div>
-				</div>
-				<div></div>
 			</div>
 			<menu>
 				<button class="home-button" type="button" onclick="closeDialog('settingsDialog')">Fermer</button>
@@ -157,7 +162,7 @@
 		</div>
 		<div id="game-container">
 			<div id="top-info-container">
-				<div onclick="openDialog('settingsDialog')" id="gear-container">
+				<div onclick="openSettings()" id="gear-container">
 					<div id="gear"></div>
 				</div>
 				<div style="display: none;" id="id-container">

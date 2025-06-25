@@ -1000,3 +1000,23 @@ function toggleOpen(elId){
   const el = document.getElementById(elId)
   el.classList.toggle("open")
 }
+function openSettings(){
+  DialogId = "settingsDialog"
+  settingsDialog = document.getElementById(DialogId)
+
+  if (inGame && data && data.state == "waiting"){
+    console.log("if")
+    settingsDialog.querySelectorAll('.pregameSettings').forEach(child=>{
+      console.log("if")
+      child.style.display = "block"
+    })
+  }else{
+    console.log("else")
+    settingsDialog.querySelectorAll('.pregameSettings').forEach(child=>{
+      console.log("else")
+      child.style.display = "none"
+    })
+  }
+
+  openDialog(DialogId)
+}

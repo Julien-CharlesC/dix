@@ -704,8 +704,8 @@ transform: rotate(90deg) scale(1.2);
 
 .score output {
   align-content: center;
-  min-width: 6.5ch !important;
-  height: 3rem !important;
+  min-width: 6.5ch ;
+  height: 3rem ;
   border: 2px solid var(--color-secondary);
   border-radius: 4px;
   font-size: 1.5rem;
@@ -824,8 +824,8 @@ transform: rotate(90deg) scale(1.2);
 	#play-area {
 		padding-top:0rem ;
 		justify-content: center;
-		grid-template-columns: repeat(3, 18rem) ;
-		grid-template-rows: auto repeat(2, 18rem);
+		grid-template-columns: repeat(3, 13rem) ;
+		grid-template-rows: auto repeat(2, 13rem);
 		justify-content: center;
 	}
 	.home-button{
