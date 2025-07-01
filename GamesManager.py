@@ -153,7 +153,7 @@ class GamesManager():
             await asyncio.sleep(1)
             if player.isActive : return
             if not any(player.isActive for player in room.activeHumans):
-                self.games.pop(roomId)
+                self.games.pop(roomId,None)
             else :
                 await self.updatePlayers(room, "playerChange")
         except Exception as e: 

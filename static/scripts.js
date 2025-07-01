@@ -356,7 +356,11 @@ function updateNames(data){
     if (!isActive){ player.style.color = "red" } 
     else{ player.style.color="white"}
     const playerPlace = document.getElementById("playerPlace" + id)
-    playerPlace.innerHTML = playerName
+    if (playerName == "En attente"){
+      playerPlace.innerHTML = "Libre"
+    }else{
+      playerPlace.innerHTML = playerName
+    }
   })
   host = document.getElementById("player"+seat2Id(data.host)+"-name")
   host.innerHTML += " : host" // display a crown for the host
