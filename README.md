@@ -18,22 +18,6 @@ Jeu du dix is a web-based multiplayer card game, implementing the official rules
 - uvicorn
 - pydantic
 
-## Installation
-1. **Clone the repository:**
-   ```bash
-   git clone <repo-url>
-   cd dix
-   ```
-2. **Install dependencies:**
-   - Using pipenv:
-     ```bash
-     pipenv install fastapi uvicorn pydantic
-     pipenv shell
-     ```
-   - Or using pip:
-     ```bash
-     pip install fastapi uvicorn pydantic
-     ```
 
 ## Running the Server
 Start the FastAPI server with Uvicorn:
@@ -43,10 +27,10 @@ python main.py
 The server will be available at [http://localhost:5000](http://localhost:5000) by default.
 
 ## Usage
-- Open your browser and go to [http://localhost:5000](http://localhost:5000)
+- Host the service on a server and redirect to [http://localhost:5000](http://localhost:5000)
 - Create a new table or join an existing one
 - Share the table URL with friends to play together
-- You can also play with a Random bot (more to come) if there are empty seats
+- You can also play with a Random bot (more bots in the futur) if there are empty seats
 
 ## Project Structure
 - `main.py` — FastAPI entrypoint
