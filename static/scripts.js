@@ -15,122 +15,6 @@ const cardSuite = ["spades","hearts","clubs","diamonds"]
 let cardPlayedSound = new Audio("/audio/cardPlayed.mp3")
 let shuffleSound = new Audio("/audio/shuffle.mp3")
 
-async function createNewRoom(name, isPrivate, gameType) {
-  const storedName = localStorage.getItem("playerName");
-  name =  (name || storedName || "")
-  const token = "newRoom:" + name + "," + isPrivate + "," + gameType;
-  console.log(token)
-  const result = await validateConnection(token);
-
-  if (result.ok) {
-    connect(token);
-  } else if (result.response) {
-    const errorObj = await result.response.json();
-    openDialog("errorDialog", errorObj.detail);
-  }
-
-  closeDialog("createNewRoomDialog");
-}
-
-async function joinRoom(name, roomId) {
-  const storedName = localStorage.getItem("playerName");
-  name =  (name || storedName || "")
-  const token = "joinRoom:" + name + "," + roomId;
-  console.log(token)
-  const result = await validateConnection(token);
-
-  if (result.ok) {
-    connect(token);
-  } else if (result.response) {
-    const errorObj = await result.response.json();
-    openDialog("errorDialog", errorObj.detail);
-    updateURL(null)
-  }
-
-  closeDialog("joinRoomDialog");
-}
-
-// Returns: { ok: true, response } or { ok: false, response }
-async function validateConnection(token) {
-  try {
-    const response = await fetch(`/validateConnectionToken?token=${token}`);
-    return { ok: response.ok, response };
-  } catch (error) {
-    openDialog("errorDialog", "Erreur de connexion au serveur.");
-    return { ok: false, response: null };
-  }
-}
-
-function connect(token){
-
-  const wsUrl = `/ws?token=` + token
-
-  socket = new WebSocket(wsUrl)
-
-  socket.onopen = () => { 
-    console.log("Connected to:", wsUrl); 
-    toggleMainMenu()
-  }
-
-  socket.onmessage = (event) => {
-      data = JSON.parse(event.data)
-      updateScriptState(data)
-      console.log("Message from server:", data);
-      processServer(data)
-  }
-  socket.onerror = (event) =>{
-      console.log(event)
-  }
-  socket.onclose = (event) => {
-      console.log("Socket closed.")
-      toggleMainMenu(getOut=true)
-  }
-}
-
-window.addEventListener("DOMContentLoaded", () => {
-  savedAudioOnStorage = localStorage.getItem("audioOn") 
-  if (savedAudioOnStorage !== null) {
-    audioOn = savedAudioOnStorage === "true"
-    const soundBox = document.getElementById("soundBox");
-    if (soundBox) {
-      soundBox.checked = audioOn ;
-    }
-  }
-
-  cardOrderInversedStorage = localStorage.getItem("cardOrderInversed") ;
-  if (cardOrderInversedStorage !== null) {
-    cardOrderInversed = cardOrderInversedStorage === "true"
-    const cardBox = document.getElementById("cardOrder");
-    if (cardBox) {
-      cardBox.checked = cardOrderInversed 
-    }
-  }
-});
-
-window.addEventListener("load", () => {
-
-  // Auto Join if the url containt roomId Token
-  const roomId = new URLSearchParams(window.location.search).get("roomId");
-  if (roomId){ 
-    const storedName = localStorage.getItem("playerName");
-    if (storedName) {
-      joinRoom(storedName, roomId)
-    } else {
-      openDialog("preRoom")
-      dialog = document.getElementById("preRoom")
-      dialog.addEventListener("submit", () => {
-        const form = dialog.querySelector("form");
-        const nameInput = form.elements["username"];
-        const name = nameInput.value.trim();
-        joinRoom(name, roomId);
-      }, { once: true });
-    }
-  }
-});
-
-window.addEventListener("beforeunload", (event) => {
-  if (socket) socket.close()
-});
 
 
 
@@ -205,48 +89,7 @@ function updateScriptState(data){
   const myName =  data.players[mySeat].name
   localStorage.setItem("playerName", myName)
 }
-/*
-function refreshCenter(){
-  for(let i=0;i<=3;i++){
-    id = "table-center-card"+i
-    playerHand = document.getElementById(id)
-    playerHand.className="card placeholder" 
-  }
-}
 
-// replace other players card with place-holder
-function refreshPlayers(seatIndexes){
-  seatIndexes.forEach((i)=>{
-    playerId = "player"+i+"-hand"
-    playerHand = document.getElementById(playerId)
-    playerHand.innerHTML=('<div class="card face-down"></div>'.repeat(10))
-  })
-}
-// replace own card with server distribution
-function putCardAtCenter(suite,rank,id){
-  id = "table-center-card"+id
-  card = document.getElementById(id)
-  card.className = `card ${suite} ${rank}`
-}
-
-function deleteCardFromHand(suite,rank, id){
-  if (id != 0){
-    // other player card
-    playerHand = document.getElementById("player"+id+"-hand")
-    card = playerHand.firstElementChild
-    if (card) playerHand.removeChild(card)
-  }else{
-    // My card
-    playerHand = document.getElementById("player0-hand")
-    for (const card of [...playerHand.children]){
-      if (card.className === `card ${suite} ${rank}`){
-        playerHand.removeChild(card)
-        break
-      }
-    }
-  }
-}
-*/
 function updateBid(data){
   if (data.state != "biding"){
     document.querySelectorAll('.bid-button, .pass-button').forEach(elem=>{
@@ -277,11 +120,14 @@ function updateBid(data){
       myCard.classList.remove("glow")
     }
   })
+  updateBidWinner(data)
+}
+
+function updateBidWinner(data){
   nousBid = Math.max(data.bids[mySeat], data.bids[(mySeat+2)%4])
   vousBid = Math.max(data.bids[(mySeat+1)%4], data.bids[(mySeat+3)%4])
   if (nousBid == 0) nousBid = "&empty;"
   if (vousBid == 0) vousBid = "&empty;"
-
   nous = document.getElementById("bid-home").innerHTML = "Mise : " + nousBid
   vous = document.getElementById("bid-away").innerHTML = "Mise : " + vousBid
 }
@@ -341,60 +187,7 @@ function playCard(data){
   }
 }
 
-function updateURL(data){
-  const url = new URL(window.location.href)
-  if (data && inGame){
-    url.searchParams.set("roomId", data.roomId)
-  }else{
-    url.searchParams.delete("roomId")
-  }
-  window.history.replaceState({},"",url);
-}
 
-function processServer(data){
-  action = data.action
-  showTurn(data)
-  switch (action){
-
-    case "playerChange":
-      updateNames(data)
-      break
-
-    case "invalid":
-      console.log(data.msg)
-      break
-
-    case "bid":
-      updateBid(data)
-      if (data.bids.filter(x => x === 0).length === 3 ){
-        clearTableTimeout = setTimeout(() => {
-          updateTableCenter(data.center, data)
-          clearTableTimeout = null
-        }, 4000);
-      }
-      break
-
-    case "cardPlayed":
-      if (audioOn) cardPlayedSound.play()
-      showTrump(data)
-      playCard(data)
-      if (data.state ==="end"){
-        updatePoints(data)
-        updateHistory(data)
-      }
-      break
-
-    case "newHand":
-      let next_bid = 50
-      if (audioOn){shuffleSound.play()}
-      updatePage(data)
-      break
-
-    case "update":
-      updatePage(data)
-      break
-  }
-}
 function seat2Id(playerSeat){
   return (playerSeat - mySeat + 4)%4
 }
@@ -701,25 +494,6 @@ function deleteMovingCards(){
   })
 }
 
-function updatePage(data){
-  if (data.state == "biding"){
-    updateBid(data)
-  } else if(!lastTrickIsShown) {
-    updateTableCenter(data.center, data)
-  }
-  updateURL(data)
-  deleteMovingCards()
-  updateRoomId(data)
-  showTrump(data)
-  updatePoints(data)
-  updateNames(data)
-  renderMyHand(data)
-  renderOtherPlayerHands(data)
-  showTurn(data)
-  player2 = document.getElementById("player2")
-  lockHeight(player2)
-  updateHistory(data)
-}
 
 function newGame(){
   if (data && mySeat == data.host){
@@ -1005,15 +779,11 @@ function openSettings(){
   settingsDialog = document.getElementById(DialogId)
 
   if (inGame && data && data.state == "waiting"){
-    console.log("if")
     settingsDialog.querySelectorAll('.pregameSettings').forEach(child=>{
-      console.log("if")
       child.style.display = "block"
     })
   }else{
-    console.log("else")
     settingsDialog.querySelectorAll('.pregameSettings').forEach(child=>{
-      console.log("else")
       child.style.display = "none"
     })
   }

@@ -12,7 +12,7 @@ class TableState(BaseModel):
     trump : int = Field(
         None,
     )
-    gameType : int = Field(
+    gameType : str = Field(
         "inf",
         description="Determine the rules of terminating the game or not."
     )

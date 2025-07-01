@@ -261,24 +261,24 @@ class GamesManager():
                     player.ws.close()
                     return
 
+
                 askingPlayerNewSeat = int(value) 
                 forcedPlayerNewSeat = player.seat
 
+                askingPlayer = player
+                forcedPlayer = room.players[askingPlayerNewSeat]
 
-                isSeatTaken = askingPlayerNewSeat in [
-                    p.seat
-                    for p in room.players
-                    if p is not None
-                ]
-                if isSeatTaken : 
-                    print("seat taken")
-                    forcedPlayer = [p for p in room.players if p is not None and p.seat == askingPlayerNewSeat][0]
+                if room.host == player.seat : 
+                    room.host = askingPlayerNewSeat
+
+                askingPlayer.seat = askingPlayerNewSeat
+                room.players[askingPlayerNewSeat] = askingPlayer
+
+                room.players[forcedPlayerNewSeat] = forcedPlayer
+                if forcedPlayer is not None:
                     forcedPlayer.seat = forcedPlayerNewSeat
 
-                if room.host == player.seat : room.host = askingPlayerNewSeat
-                player.seat = askingPlayerNewSeat
-
-                await self.updatePlayers(room, "playerJoined")
+                await self.updatePlayers(room, "playerChange")
 
             case "botTime2Act":
                 if player.seat != room.host : return
