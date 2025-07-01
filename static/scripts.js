@@ -1,3 +1,9 @@
+/*- 
+-----------------------------------------------
+        Script states and parameters
+-----------------------------------------------
+
+*/
 let audioOn = true
 let cardOrderInversed = false
 
@@ -14,8 +20,11 @@ const cardRank = ["five", "six", "seven", "eight", "nine", "ten", "jack", "queen
 const cardSuite = ["spades","hearts","clubs","diamonds"]
 let cardPlayedSound = new Audio("/audio/cardPlayed.mp3")
 let shuffleSound = new Audio("/audio/shuffle.mp3")
+/*- 
+-----------------------------------------------
 
-
+-----------------------------------------------
+*/
 
 
 function getRoomsList() {
@@ -37,11 +46,11 @@ function getRoomsList() {
     });
 }
 
-function openDialog(dialogId, truc=""){
+function openDialog(dialogId, title=""){
   const dialog = document.getElementById(dialogId)
   dialog.showModal()
-  if (truc){
-    dialog.querySelector("h2").innerHTML = truc
+  if (title){
+    dialog.querySelector("h2").innerHTML =title 
   }
   dialog.addEventListener("close", () => {
     document.body.style.filter = "none"
@@ -52,6 +61,7 @@ function closeDialog(dialogId){
   document.getElementById(dialogId).close()
   document.body.style.filter = "none"
 }
+
 function quit(){
   toggleMainMenu(getOut=true)
   if ( socket ) socket.close()
@@ -83,12 +93,6 @@ function changeName(newName){
   }
 }
 
-function updateScriptState(data){
-  mySeat = data.mySeat
-  turn = data.turn
-  const myName =  data.players[mySeat].name
-  localStorage.setItem("playerName", myName)
-}
 
 function updateBid(data){
   if (data.state != "biding"){
@@ -132,14 +136,6 @@ function updateBidWinner(data){
   vous = document.getElementById("bid-away").innerHTML = "Mise : " + vousBid
 }
 
-function findMyCard(strSuite,strRank){
-  myHand = document.getElementById("player0-hand")
-  myCard = Array.from(myHand.children).find((child)=>{
-    return (child.classList.contains(strSuite) && 
-            child.classList.contains(strRank))
-  })
-  return myCard
-}
 
 function playCard(data){
   playerSeat = parseInt(data.msg.split(",")[0])
@@ -188,9 +184,6 @@ function playCard(data){
 }
 
 
-function seat2Id(playerSeat){
-  return (playerSeat - mySeat + 4)%4
-}
 function updateRoomId(data){
   // Update roomId
   document.getElementById("roomIdCopy").innerHTML = data.roomId
@@ -329,17 +322,7 @@ function updateHistory(data){
     },7000)
   }
 }
-function getRect(id){ 
-  const rect = document.getElementById(id).getBoundingClientRect();
-  return {
-    top: rect.top,
-    left: rect.left,
-    bottom: rect.bottom,
-    right: rect.right,
-    width: rect.width,
-    height: rect.height
-  }
-}
+
 
 function updateNames(data){
   data.players.forEach((player, seat)=>{
@@ -457,6 +440,7 @@ function moveCard(card, target, sourceEl=null) {
     movingCard.remove();
   }, { once: true });
 }
+
 function changeCardOrder(bool){
   console.log("box",bool)
   localStorage.setItem("cardOrderInversed", bool);
@@ -508,9 +492,6 @@ function newGame(){
 function botTime2Act(sec){
   if (socket && data && data.host == mySeat) socket.send("botTime2Act:"+sec)
 }
-function id2Seat(id){
-  return (mySeat + id)%4
-}
 
 function changeSeat(id){
   if (!data || data.state != "waiting") return
@@ -524,35 +505,16 @@ function newHand(){
   if (data && mySeat == data.host) socket.send("newHand:none")
 }
 
-window.addEventListener("resize", () => {
-  if (window.innerWidth >= 750) {
-    // When the screen is over 750 width, no "confirm" selectedCard shenanigan
-    removeAllSelectedCard()
-    selectedCard = null
-  }
-  player2 = document.getElementById("player2")
-  lockHeight(player2)
-});
 
+// For mobile, remove the highlight from card pre-selection/confirmation
 function removeAllSelectedCard(skip=null){
   Array.from(document.getElementsByClassName("selectedCard")).forEach((child)=>{
     if (child === skip) return
     child.classList.remove("selectedCard")
   })
 }
-function card2Int(cardEl){
-  card = [null,null]
-  cardEl.classList.forEach(className => {
 
-    index = cardSuite.indexOf(className)
-    if (index!==-1) card[0] = index
-
-    index = cardRank.indexOf(className)
-    if (index!==-1) card[1] = index+5
-  });
-  return card
-}
-
+// Return a bool if a card is valid to play
 function isCardValid(cardEl){
   if (data === null) return false
   // Not the player's turn
@@ -583,7 +545,7 @@ function isCardValid(cardEl){
   return true
 }
 
-// The function on each player0 cards. 
+// This function is on each player0 (self) cards. 
 function askToPlayCard(cardEl){
   if (!isCardValid(cardEl)){
     cardEl.classList.add("shake-error");
@@ -645,42 +607,6 @@ function confirmBid(){
   socket.send("bid:"+bid)
 }
 
-// deprecated, use to copy roomId to clipboard
-function copyToClipboard(elem) {
-  text = elem._originalText
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(text).catch(err => console.error("Clipboard write failed:", err));
-  } else {
-    const textarea = document.createElement("textarea");
-    textarea.value = text;
-    textarea.style.position = "fixed";
-    textarea.style.left = "-9999px";
-    document.body.appendChild(textarea);
-    textarea.focus();
-    textarea.select();
-    try {
-      document.execCommand("copy");
-    } catch (err) {
-      console.error("Fallback copy failed", err);
-    }
-    document.body.removeChild(textarea);
-  }
-}
-// deprecated, use to copy roomId to clipboard
-function showCopy(elem) {
-  if (!elem._originalText) {
-    elem._originalText = elem.textContent;
-    lockWidth(elem);
-  }
-  elem.textContent = "Copier";
-}
-
-// deprecated, use to copy roomId to clipboard
-function restoreText(elem) {
-  if (elem._originalText !== undefined) {
-    elem.textContent = elem._originalText;
-  }
-}
 // Ensure that the button does't change in size when inner text become "Copier"
 function lockWidth(elem) {
   elem.style.width= ''; 

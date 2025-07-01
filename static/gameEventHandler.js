@@ -1,3 +1,4 @@
+
 function processServer(data){
   action = data.action
   showTurn(data)
@@ -41,6 +42,13 @@ function processServer(data){
       updatePage(data)
       break
   }
+}
+
+function updateScriptState(data){
+  mySeat = data.mySeat
+  turn = data.turn
+  const myName =  data.players[mySeat].name
+  localStorage.setItem("playerName", myName)
 }
 
 function updatePage(data){
