@@ -820,10 +820,10 @@ transform: rotate(90deg) scale(1.2);
 	}
 
 	#play-area {
-		padding-top:0rem ;
+		padding-top:2rem ;
 		justify-content: center;
-		grid-template-columns: repeat(3, 13rem) ;
-		grid-template-rows: auto repeat(2, 13rem);
+		grid-template-columns: repeat(3, 45vw) ;
+		grid-template-rows: auto repeat(2, 45vw);
 		justify-content: center;
 	}
 	.home-button{
@@ -850,9 +850,43 @@ transform: rotate(90deg) scale(1.2);
 		translate: -2rem 0;
 	}
 	#player2-name{
-		translate: 0 2rem;
+		translate: 0 0rem;
 	}
 	#player3-name{
 		translate: -2rem 0;
 	}
 }
+
+
+@media screen and (max-width: 450px) {
+	*{
+		user-select: none;
+	}
+	#player2-name{
+		translate: 0 2rem;
+	}
+
+	#game-container {
+		padding-top:1rem;
+	}
+	#header-buttons{
+		gap:0.5rem ;
+	}
+
+	#trump, #last-trick{
+		padding: 7vw 5vw !important ;
+	}
+
+	.card {
+		padding: 7vw 5vw;
+	}
+
+	#play-area {
+		padding-top:0rem ;
+		justify-content: center;
+		grid-template-columns: repeat(3, 13rem) ;
+		grid-template-rows: auto repeat(2, 13rem);
+		justify-content: center;
+	}
+}
+
