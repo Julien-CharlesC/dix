@@ -53,6 +53,7 @@ window.addEventListener("resize", () => {
     removeAllSelectedCard()
     selectedCard = null
   }
+  // Don't want the grid space to disapear when the last card is played.
   player2 = document.getElementById("player2")
   lockHeight(player2)
 });

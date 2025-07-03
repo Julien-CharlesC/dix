@@ -150,8 +150,20 @@ function playCard(data){
   }else{
     id = seat2Id(playerSeat)
     playerCards = document.getElementById("player"+id+"-hand").children;
-    randomCard = playerCards[Math.floor(Math.random() * playerCards.length)];
+
+    // If the random selected card is allready played, take the idx-1
+    // This happen if random selected the same card under the 2sec transition
+    idx = Math.floor(Math.random() * playerCards.length)
+    randomCard = playerCards[idx];
+
+    var numTry = 0
+    while (randomCard.style.visibility == "hidden" && numTry < 10){
+      idx = (idx+1)%playerCards.length
+      randomCard = playerCards[idx];
+      numTry += 1
+    }
     randomCard.className = `card ${suite} ${rank} ${id}`
+
     target = document.getElementById("table-center-card"+id)
     if (window.innerWidth < 750){ 
       sourceEl = document.getElementById("player"+id+"-name")
