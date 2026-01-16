@@ -1,36 +1,55 @@
 async function createNewRoom(name, isPrivate, gameType) {
-  const storedName = localStorage.getItem("playerName");
-  name =  (name || storedName || "")
-  const token = "newRoom:" + name + "," + isPrivate + "," + gameType;
-  console.log(token)
-  const result = await validateConnection(token);
+    const storedName = localStorage.getItem("playerName");
+    name =  (name || storedName || "")
 
-  if (result.ok) {
-    connect(token);
-  } else if (result.response) {
-    const errorObj = await result.response.json();
-    openDialog("errorDialog", errorObj.detail);
-  }
+    var alphanum = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+    for (i=0; i<name.length; i++){
+        var car = name[i] ;
+        if (alphanum.indexOf(car) == -1) {
+            openDialog("errorDialog", "Le nom doit contenir uniquement des caractères alphanumériques") ;
+            return ;
+        }
+    }
 
-  closeDialog("createNewRoomDialog");
+    const token = "newRoom:" + name + "," + isPrivate + "," + gameType;
+    console.log(token)
+    const result = await validateConnection(token);
+
+    if (result.ok) {
+        connect(token);
+    } else if (result.response) {
+        const errorObj = await result.response.json();
+        openDialog("errorDialog", errorObj.detail);
+    }
+
+    closeDialog("createNewRoomDialog");
 }
 
 async function joinRoom(name, roomId) {
-  const storedName = localStorage.getItem("playerName");
-  name =  (name || storedName || "")
-  const token = "joinRoom:" + name + "," + roomId;
-  console.log(token)
-  const result = await validateConnection(token);
+    const storedName = localStorage.getItem("playerName");
+    name =  (name || storedName || "")
+    var alphanum = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
 
-  if (result.ok) {
-    connect(token);
-  } else if (result.response) {
-    const errorObj = await result.response.json();
-    openDialog("errorDialog", errorObj.detail);
-    updateURL(null)
-  }
+    for (i=0; i<name.length; i++){
+        var car = name[i] ;
+        if (alphanum.indexOf(car) == -1) {
+            openDialog("errorDialog", "Le nom doit contenir uniquement des caractères alphanumériques") ;
+            return ;
+        }
+    }
+    const token = "joinRoom:" + name + "," + roomId;
+    console.log(token)
+    const result = await validateConnection(token);
 
-  closeDialog("joinRoomDialog");
+    if (result.ok) {
+        connect(token);
+    } else if (result.response) {
+        const errorObj = await result.response.json();
+        openDialog("errorDialog", errorObj.detail);
+        updateURL(null)
+    }
+
+    closeDialog("joinRoomDialog");
 }
 
 // Returns: { ok: true, response } or { ok: false, response }
