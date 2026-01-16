@@ -85,12 +85,23 @@ function toggleMainMenu(getOut=null){
 }
 
 function changeName(newName){
-  newName = newName.trim()
-  if (newName.length <= 2 || newName >= 21){
-    openDialog("errorDialog", "Le nom doit être entre 3 et 20 caractères.");
-  }else{
-    socket.send("nameChange:"+newName)
-  }
+
+    newName = newName.trim()
+    var alphanum = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+
+    for (i=0; i<newName.length; i++){
+        var car = newName[i] ;
+        if (alphanum.indexOf(car) == -1) {
+            openDialog("errorDialog", "Le nom doit contenir uniquement des caractères alphanumériques") ;
+            return ;
+        }
+    }
+
+    if (newName.length <= 2 || newName >= 21){
+        openDialog("errorDialog", "Le nom doit être entre 3 et 20 caractères.");
+    }else{
+        socket.send("nameChange:"+newName)
+    }
 }
 
 

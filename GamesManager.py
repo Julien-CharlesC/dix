@@ -83,6 +83,8 @@ class GamesManager():
         self.games[roomId] = room
         return room
 
+    # Verify that the token is valid
+    # return the tuple (action,value)
     def processGameToken(self,token):
         if ( 
             len(token) >= 40 or 
@@ -93,6 +95,9 @@ class GamesManager():
 
         return m[1], m[2]
 
+    # Function is used check if a player can join, 
+    # if a player can join, the second argument is its seat index
+    # if the player cannot, the second argument is the error msg
     def wherePlayerCanJoin(self,roomId,playerName):
         # chech if room exist
         if not self.doesRoomIdExist(roomId):
@@ -111,26 +116,31 @@ class GamesManager():
         if not any(player is None for player in room.players):
             return False, "La table est pleine."
 
+        # Sinon, retourne la première place libre (none)
         return True, room.players.index(None)
 
-    # Suppose that all verification is done and that the connection
-    # is secure and will succed to the room
+    # This function supposes that all verification is done and that the connection
+    # is secure and will successfully connect to the room
     async def connect(self,ws:WebSocket,roomId,playerName,indexSeat):
         await ws.accept()
         self.total_connection += 1
 
         room : Room = self.games.get(roomId)
+        # If no name was provided, generate one
         if playerName == "" : 
             playerName = self.generateRandomName(room)
             room.roomName = playerName
+        # Easter egg
         elif re.match(r'[Mm]erci [Rr]obin',playerName):
             playerName = "Merci Samuel"
             room.roomName = playerName
+        # Easter egg
         elif re.match(r'[Mm]erci [Ss]amuel',playerName):
             playerName = "Merci Robin"
             room.roomName = playerName
 
         print(f"{self.total_connection=}")
+        # Create the player object and add it to the room
         player = Player(
             isActive = True,
             isBot = False,
@@ -138,18 +148,21 @@ class GamesManager():
             name = playerName,
             seat = indexSeat
         )
+        # Populate the table/indexes of seats
         room.players[indexSeat] = player
         await self.playerAct("connectionAccepted","",room,player)
 
         try :
+            # Main loop
             while True:
                 action,value = self.processGameToken(await ws.receive_text())
                 await self.playerAct(action,value,room,player)
+        
         except WebSocketDisconnect:
             self.total_connection -= 1
             player.isActive = False
             print(f"{self.total_connection=}")
-            # Del the room if no player in it. But let few seconds for refresh.
+            # Del the room if no player in it. But let few seconds if the player just refreshed.
             await asyncio.sleep(1)
             if player.isActive : return
             if not any(player.isActive for player in room.activeHumans):
@@ -164,6 +177,7 @@ class GamesManager():
             print(e)
             self.games.pop(roomId)
 
+    # Update all the player in a room with an action that was taken
     async def updatePlayers(self, room : Room , action, msg=""):
         state : dict = room.state | { "action" : action, "msg":msg} 
         for player in room.activeHumans:
@@ -173,6 +187,7 @@ class GamesManager():
             })
             await player.ws.send_text({json.dumps(state)})
 
+    # Update a single player
     async def updatePlayer(self, room, action, player, msg=""):
         state = room.state | {"action" : action, "msg":msg} 
         state.update({
@@ -270,6 +285,9 @@ class GamesManager():
 
                 if room.host == player.seat : 
                     room.host = askingPlayerNewSeat
+
+                if forcedPlayer is not None and room.host == forcedPlayer.seat:
+                    room.host = askingPlayer.seat
 
                 askingPlayer.seat = askingPlayerNewSeat
                 room.players[askingPlayerNewSeat] = askingPlayer
