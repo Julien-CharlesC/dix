@@ -56,6 +56,7 @@ class Table():
         self.ts.bids = [None]*4
         self.ts.lastCenter = [None]*4
         self.ts.trump = None
+        self.ts.center = [None]*4
 
         # dev
         """
